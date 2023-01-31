@@ -20,12 +20,16 @@ struct queue {
  * the new queue.
  */
 queue_t queue_create(void) {
-	struct queue new_queue;
-	new_queue.length = 0;
-	new_queue.data = NULL;
-	new_queue.front = NULL;
-	new_queue.rear = NULL;
-	return &new_queue;
+	queue_t new_queue = malloc(sizeof(struct queue));
+	if (new_queue == NULL) {
+		// ERROR: Bad malloc
+		return NULL;
+	}
+	new_queue->length = 0;
+	new_queue->data = NULL;
+	new_queue->front = NULL;
+	new_queue->rear = NULL;
+	return new_queue;
 }
 
 /*
@@ -39,11 +43,12 @@ queue_t queue_create(void) {
  */
 int queue_destroy(queue_t queue) {
 	if (queue == NULL) {
-		// ERROR: queue pointing to nothing
+		// ERROR: Queue doesnt exist
 		return -1;
 	}
 
 	// Free queue node
+	free(queue->data);
 	free(queue);
 
 	if (queue != NULL) {
@@ -105,10 +110,10 @@ int queue_dequeue(queue_t queue, void **data) {
 
 	// Get front reference and set data
 	queue_t front = queue->front;
-	*data = queue->data;
+	*data = front->data;
 
-	// Pop from queue
-	queue->front = queue->rear;
+	// Make front node equal to front nodes rear
+	queue->front = queue->front->rear;
 	queue->length -= 1;
 
 	// Free front node
@@ -130,7 +135,7 @@ int queue_dequeue(queue_t queue, void **data) {
 // O(N)
 int queue_delete(queue_t queue, void *data) {
 	if (queue == NULL || data == NULL) {
-		// ERROR: queue or data is empty
+		// ERROR: queue / data is empty
 		return -1;
 	}
 
@@ -142,7 +147,7 @@ int queue_delete(queue_t queue, void *data) {
 		}
 	}
 	
-	// ERROR: Did not find data in queue
+	// ERROR: Data not found in queue
 	return -1;
 }
 
