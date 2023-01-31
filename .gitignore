@@ -1,8 +1,12 @@
 # Lab 2 binaries
+
+# Object files
 *.o
 *.d
-*.a
 *.x
+
+# Library
+*.a
 
 # Debug symbols
 *.dSYM

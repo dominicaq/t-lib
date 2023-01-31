@@ -1,15 +1,15 @@
 # Target library
-lib 	 := libuthread.a
-objs 	 := $(wildcard *.o)
+lib  := libuthread.a
+# Source: https://www.gnu.org/software/make/manual/html_node/Wildcard-Function.html
+objs := $(patsubst %.c,%.o,$(wildcard *.c))
 
 # GCC options
-CC       := gcc
-CFLAGS	 := -MMD -Wall
-CFLAGS	 += -Wextra -Werror
+CC     := gcc
+CFLAGS := -MMD -Wall
+# CFLAGS	 += -Wextra -Werror
 
 # Static library options
 LIBFLAGS := ar rcs
-
 # Verbose mode
 ifneq ($(V),1)
 Q = @
@@ -35,4 +35,4 @@ $(lib): $(objs)
 # Cleaning rule
 clean:
 	@echo "clean"
-	$(Q)rm -rf $(objs) $(deps)
+	$(Q)rm -rf $(lib) $(objs) $(deps)
