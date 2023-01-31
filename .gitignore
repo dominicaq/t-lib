@@ -1,5 +1,8 @@
 # Lab 2 binaries
-
+*.o
+*.d
+*.a
+*.x
 
 # Debug symbols
 *.dSYM

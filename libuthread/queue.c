@@ -43,7 +43,7 @@ queue_t queue_create(void) {
  */
 int queue_destroy(queue_t queue) {
     if (queue == NULL) {
-        // ERROR: Queue doesnt exist
+        // ERROR: Uninitialized queue node
         return -1;
     }
 
@@ -82,7 +82,7 @@ int queue_enqueue(queue_t queue, void *data) {
         queue->rear = new_node;
         queue->front = queue->rear;
     } else {
-        // Append to rear of queue
+        // Append to rear nodes rear
         queue->rear->rear = new_node;
         queue->rear = new_node;
     }
@@ -151,10 +151,32 @@ int queue_delete(queue_t queue, void *data) {
     return -1;
 }
 
+/*
+ * queue_iterate - Iterate through a queue
+ * @queue: Queue to iterate through
+ * @func: Function to call on each queue item
+ *
+ * This function iterates through the items in the queue @queue, from the oldest
+ * item to the newest item, and calls the given callback function @func on each
+ * item. The callback function receives the current data item as parameter.
+ *
+ * Note that this function should be resistant to data items being deleted
+ * as part of the iteration (ie in @func).
+ *
+ * Return: -1 if @queue or @func are NULL, 0 otherwise.
+ */
 // O(N)
 int queue_iterate(queue_t queue, queue_func_t func) {
-    return -1;
-    /* TODO Phase 1 */
+    if (queue == NULL || func == NULL) {
+        // ERROR: Unintialized queue / func
+        return -1;
+    }
+
+    // TODO: Unsure how to use func callback
+    for (queue_t q = queue; q->front != NULL; q->front = q->front->rear) {
+
+    }
+    return 0;
 }
 
 int queue_length(queue_t queue) {

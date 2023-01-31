@@ -1,12 +1,14 @@
 # Target library
-lib 	:= libuthread.a
-targets := queue#, sem, uthread
-objs 	:= queue.o, sem.o, uthread.o
+lib 	 := libuthread.a
+objs 	 := $(wildcard *.o)
 
 # GCC options
-CC      := gcc
-CFLAGS  := -MMD # -Wall -Wextra -Werror
-CFLAGS  += -g
+CC       := gcc
+CFLAGS	 := -MMD -Wall
+CFLAGS	 += -Wextra -Werror
+
+# Static library options
+LIBFLAGS := ar rcs
 
 # Verbose mode
 ifneq ($(V),1)
@@ -14,18 +16,23 @@ Q = @
 endif
 
 # Default rule
-all: $(targets) #$(lib)
+all: $(lib)
 
 # Include dependencies
-deps := $(patsubst %.o, %.d, $(objs))
+deps := $(patsubst %.o,%.d,$(objs))
 -include $(deps)
 
-# Generic rule for compiling objects
+# Generic rule for compiling static library
+$(lib): $(objs)
+	@echo "CC $@"
+	$(Q)$(LIBFLAGS) $(lib) $(objs)
+
+# Generic compile rule
 %.o: %.c
-	@echo "CC	$@"
+	@echo "CC $@"
 	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
 
-# Cleaning rule TODO: Deps not cleaning
+# Cleaning rule
 clean:
 	@echo "clean"
 	$(Q)rm -rf $(objs) $(deps)

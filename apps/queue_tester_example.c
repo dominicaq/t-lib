@@ -37,10 +37,26 @@ void test_queue_simple(void)
 	TEST_ASSERT(ptr == &data);
 }
 
-int main(void)
-{
+/* Queue length */
+void test_len(void) {
+	int expected_len = 4;
+	int data = 3;
+	queue_t q;
+
+	// Enqueue 4 data points
+	q = queue_create();
+	queue_enqueue(q, &data);
+	queue_enqueue(q, &data);
+	queue_enqueue(q, &data);
+	queue_enqueue(q, &data);
+	int len = queue_length(q);
+	TEST_ASSERT(len == expected_len);
+}
+
+int main(void) {
 	test_create();
 	test_queue_simple();
+	test_len();
 
 	return 0;
 }
