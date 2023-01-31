@@ -15,9 +15,9 @@ do {									\
 	}									\
 } while(0)
 
-/* Callback - Professor code */
-static void iterator_inc(queue_t q, void *data)
-{
+// Callbacks
+// ============================================================================
+static void iterator_inc(queue_t q, void *data) {
     int *a = (int*)data;
 
     if (*a == 42)
@@ -26,6 +26,13 @@ static void iterator_inc(queue_t q, void *data)
         *a += 1;
 }
 
+static void print_queue(queue_t q, void* data) {
+	int *a = (int*)data;
+	printf("Queue_list: %d\n", *(int*)a);
+}
+
+// Test functions
+// ============================================================================
 /* Create */
 void test_create(void)
 {
@@ -50,14 +57,20 @@ void test_queue_simple(void)
 
 /* Queue length */
 void test_len(void) {
-	int expected_len = 4;
-	int data = 3;
+	int num_enqueue = 4;
+	int num_dequeue = 2;
+	int expected_len = num_enqueue - num_dequeue;
+	int data = 1;
 	queue_t q;
 
-	// Enqueue 4 data points
 	q = queue_create();
-	for (int i = 0; i < expected_len; ++i) {
+	for (int i = 0; i < num_enqueue; ++i) {
 		queue_enqueue(q, &data);
+	}
+
+	int *ret;
+	for (int i = 0; i < num_dequeue; ++i) {
+		queue_dequeue(q, (void**)&ret);
 	}
 
 	fprintf(stderr, "*** TEST len ***\n");
@@ -77,9 +90,14 @@ void test_iterator(void)
         queue_enqueue(q, &data[i]);
 
     /* Increment every item of the queue, delete item '42' */
+	fprintf(stderr, "*** TEST before_iterate ***\n");
+	queue_iterate(q, print_queue);
+
     queue_iterate(q, iterator_inc);
+
+	fprintf(stderr, "*** TEST after_iterate ***\n");
+	queue_iterate(q, print_queue);
     assert(data[0] == 2);
-	printf("ITERATOR_LEN: %d\n", queue_length(q));
     assert(queue_length(q) == 9);
 }
 

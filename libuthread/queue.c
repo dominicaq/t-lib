@@ -114,10 +114,8 @@ int queue_dequeue(queue_t queue, void **data) {
     *data = front->data;
 
     // Make front node equal to front nodes rear
-    queue->front = queue->front->rear;
+    queue->front = front->rear;
     queue->length -= 1;
-
-    // Free front node
     queue_destroy(front);
     return 0;
 }
@@ -139,8 +137,9 @@ int queue_delete(queue_t queue, void *data) {
         return -1;
     }
 
-    queue_t q = queue->front;
+    queue_t q = queue;
     while (q != NULL) {
+        // Skip logic until data is found
         if (q->data != data) {
             q = q->rear;
             continue;
@@ -149,11 +148,11 @@ int queue_delete(queue_t queue, void *data) {
         queue_t target = q;
         if (target->front == NULL) {
             // Target data is in front
-            target->front = target->front->rear;
+            target->front = target->rear;
         } else {
-            // Data ahead of target
+            // Data in middle of queue
+            target->rear->front = target->front;
             target->front->rear = target->rear;
-            printf("make me print front and rear\n");
         }
 
         queue->length -= 1;
