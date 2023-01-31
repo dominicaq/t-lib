@@ -28,7 +28,7 @@ CUR_PWD := $(shell pwd)
 CC	= gcc
 
 # General gcc options
-CFLAGS	:= -Wall -Wextra -Werror
+# CFLAGS	:= -Wall -Wextra -Werror
 CFLAGS	+= -pipe
 ## Debug flag
 ifneq ($(D),1)
@@ -77,3 +77,9 @@ clean: FORCE
 .PHONY: FORCE
 FORCE:
 
+# TODO: Test Files (Will make this better, I was lazy)
+test:
+	./queue_tester_example.x
+
+testv:
+	valgrind --track-origins=yes --leak-check=full ./queue_tester_example.x

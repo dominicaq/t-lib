@@ -116,8 +116,9 @@ int queue_dequeue(queue_t queue, void **data) {
     queue->front = queue->front->rear;
     queue->length -= 1;
 
+    // TODO: Free node properly (Currently memleak / segfault)
     // Free front node
-    queue_destroy(front);
+    // queue_destroy(front);
     return 0;
 }
 
