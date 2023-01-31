@@ -4,6 +4,7 @@
 
 #include "queue.h"
 
+#include <stdio.h> // TODO: REMOVE
 struct queue {
     int length;
     void *data;
@@ -47,12 +48,11 @@ int queue_destroy(queue_t queue) {
         return -1;
     }
 
-    // Free queue node
-    free(queue->data);
+    // Free current queue node
     free(queue);
 
     if (queue != NULL) {
-        // ERROR: Didn't free node
+        // ERROR: Bad free
         return -1;
     }
 
@@ -80,8 +80,9 @@ int queue_enqueue(queue_t queue, void *data) {
     if (queue->front == NULL) {
         // Queue is empty
         queue->rear = new_node;
-        queue->front = queue->rear;
+        queue->front = new_node;
     } else {
+        new_node->front = queue->rear;
         // Append to rear nodes rear
         queue->rear->rear = new_node;
         queue->rear = new_node;
@@ -116,9 +117,8 @@ int queue_dequeue(queue_t queue, void **data) {
     queue->front = queue->front->rear;
     queue->length -= 1;
 
-    // TODO: Free node properly (Currently memleak / segfault)
     // Free front node
-    // queue_destroy(front);
+    queue_destroy(front);
     return 0;
 }
 
@@ -133,19 +133,32 @@ int queue_dequeue(queue_t queue, void **data) {
  * Return: -1 if @queue or @data are NULL, of if @data was not found in the
  * queue. 0 if @data was found and deleted from @queue.
  */
-// O(N)
 int queue_delete(queue_t queue, void *data) {
     if (queue == NULL || data == NULL) {
         // ERROR: queue / data is empty
         return -1;
     }
 
-    // Find data in queue
-    for (queue_t q = queue; q->front != NULL; q->front = q->front->rear) {
-        if (q->data == data) {
-            queue_destroy(q);
-            return 0;
+    queue_t q = queue->front;
+    while (q != NULL) {
+        if (q->data != data) {
+            q = q->rear;
+            continue;
         }
+
+        queue_t target = q;
+        if (target->front == NULL) {
+            // Target data is in front
+            target->front = target->front->rear;
+        } else {
+            // Data ahead of target
+            target->front->rear = target->rear;
+            printf("make me print front and rear\n");
+        }
+
+        queue->length -= 1;
+        queue_destroy(target);
+        return 0;
     }
 
     // ERROR: Data not found in queue
@@ -166,17 +179,19 @@ int queue_delete(queue_t queue, void *data) {
  *
  * Return: -1 if @queue or @func are NULL, 0 otherwise.
  */
-// O(N)
 int queue_iterate(queue_t queue, queue_func_t func) {
     if (queue == NULL || func == NULL) {
         // ERROR: Unintialized queue / func
         return -1;
     }
 
-    // TODO: Unsure how to use func callback
-    for (queue_t q = queue; q->front != NULL; q->front = q->front->rear) {
-
+    // Iterate through queue and use func on current nodes data
+    queue_t q = queue->front;
+    while (q != NULL) {
+        func(q, q->data);
+        q = q->rear;
     }
+    
     return 0;
 }
 

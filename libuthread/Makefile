@@ -7,8 +7,6 @@ CC     := gcc
 CFLAGS := -MMD -Wall
 #CFLAGS += -Wextra -Werror
 
-# Static library options
-LIBFLAGS := ar rcs
 # Verbose mode
 ifneq ($(V),1)
 Q = @
@@ -24,7 +22,7 @@ deps := $(patsubst %.o,%.d,$(objs))
 # Generic rule for compiling static library
 $(lib): $(objs)
 	@echo "CC $@"
-	$(Q)$(LIBFLAGS) $(lib) $(objs)
+	$(Q)ar rcs $(lib) $(objs)
 
 # Generic compile rule
 %.o: %.c
