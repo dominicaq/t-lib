@@ -4,6 +4,11 @@
 
 #include <queue.h>
 
+// TODO LIST:
+// - Edge Cases
+// - Freeing after test
+// Assert prompt
+// ============================================================================
 #define TEST_ASSERT(assert)				\
 do {									\
 	printf("ASSERT: " #assert " ... ");	\
@@ -63,6 +68,8 @@ void test_len(void) {
 	int data = 1;
 	queue_t q;
 
+	fprintf(stderr, "*** TEST len ***\n");
+
 	q = queue_create();
 	for (int i = 0; i < num_enqueue; ++i) {
 		queue_enqueue(q, &data);
@@ -73,32 +80,47 @@ void test_len(void) {
 		queue_dequeue(q, (void**)&ret);
 	}
 
-	fprintf(stderr, "*** TEST len ***\n");
 	TEST_ASSERT(queue_length(q) == expected_len);
 }
 
-/* Callback */
-void test_iterator(void)
-{
+/* Test callbacks */
+void test_iterator(void) {
     queue_t q;
     int data[] = {1, 2, 3, 4, 5, 42, 6, 7, 8, 9};
     size_t i;
 
+	fprintf(stderr, "*** TEST iterator ***\n");
     /* Initialize the queue and enqueue items */
     q = queue_create();
     for (i = 0; i < sizeof(data) / sizeof(data[0]); i++)
         queue_enqueue(q, &data[i]);
 
-    /* Increment every item of the queue, delete item '42' */
-	fprintf(stderr, "*** TEST before_iterate ***\n");
-	queue_iterate(q, print_queue);
+    
+	//fprintf(stderr, "*** TEST before_iterate ***\n");
+	//queue_iterate(q, print_queue);
 
+	/* Increment every item of the queue, delete item '42' */
     queue_iterate(q, iterator_inc);
 
-	fprintf(stderr, "*** TEST after_iterate ***\n");
+	//fprintf(stderr, "*** TEST after_iterate ***\n");
+	//queue_iterate(q, print_queue);
+    TEST_ASSERT(data[0] == 2);
+    TEST_ASSERT(queue_length(q) == 9);
+}
+
+/* Enqueue one data point and remove it with queue_delete
+	-Expected result: Empty queue
+*/
+void test_enqueue_delete(){
+	int data = 42;
+	queue_t q = queue_create();
+
+	fprintf(stderr, "*** TEST enqueue_delete ***\n");
+	queue_enqueue(q, &data);
+	queue_enqueue(q, &data);
+	queue_iterate(q, iterator_inc);
 	queue_iterate(q, print_queue);
-    assert(data[0] == 2);
-    assert(queue_length(q) == 9);
+	TEST_ASSERT(queue_length(q) == 0);
 }
 
 int main(void) {
@@ -106,6 +128,7 @@ int main(void) {
 	test_queue_simple();
 	test_len();
 	test_iterator();
+	test_enqueue_delete();
 
 	return 0;
 }

@@ -137,7 +137,7 @@ int queue_delete(queue_t queue, void *data) {
         return -1;
     }
 
-    queue_t q = queue;
+    queue_t q = queue->front;
     while (q != NULL) {
         // Skip logic until data is found
         if (q->data != data) {
@@ -145,18 +145,18 @@ int queue_delete(queue_t queue, void *data) {
             continue;
         }
 
-        queue_t target = q;
-        if (target->front == NULL) {
+        // Found target to remove
+        if (q->front == NULL) {
             // Target data is in front
-            target->front = target->rear;
+            q->rear->front = q->front;
         } else {
             // Data in middle of queue
-            target->rear->front = target->front;
-            target->front->rear = target->rear;
+            q->rear->front = q->front;
+            q->front->rear = q->rear;
         }
 
         queue->length -= 1;
-        queue_destroy(target);
+        queue_destroy(q);
         return 0;
     }
 
@@ -187,7 +187,7 @@ int queue_iterate(queue_t queue, queue_func_t func) {
     // Iterate through queue and use func on current nodes data
     queue_t q = queue->front;
     while (q != NULL) {
-        func(q, q->data);
+        func(queue, q->data);
         q = q->rear;
     }
     
