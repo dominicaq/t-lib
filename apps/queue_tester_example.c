@@ -31,33 +31,39 @@ static void iterator_inc(queue_t q, void *data) {
         *a += 1;
 }
 
-static void print_queue(queue_t q, void* data) {
+static void print_queue(queue_t q, void *data) {
 	int *a = (int*)data;
-	printf("Queue_list: %d\n", *(int*)a);
+	if (a != NULL) {
+		printf("Queue_list: %d\n", *(int*)a);
+	}
 }
 
+static void free_queue(queue_t q, void *data) {
+	queue_destroy((queue_t)data);
+}
 // Test functions
 // ============================================================================
 /* Create */
-void test_create(void)
-{
+void test_create(void) {
+	queue_t q = queue_create();
 	fprintf(stderr, "*** TEST create ***\n");
 
-	TEST_ASSERT(queue_create() != NULL);
+	TEST_ASSERT(q != NULL);
+	queue_destroy(q);
 }
 
 /* Enqueue/Dequeue simple */
 void test_queue_simple(void)
 {
 	int data = 3, *ptr;
-	queue_t q;
+	queue_t q = queue_create();
 
 	fprintf(stderr, "*** TEST queue_simple ***\n");
 
-	q = queue_create();
 	queue_enqueue(q, &data);
 	queue_dequeue(q, (void**)&ptr);
 	TEST_ASSERT(ptr == &data);
+	queue_destroy(q);
 }
 
 /* Queue length */
@@ -95,15 +101,8 @@ void test_iterator(void) {
     for (i = 0; i < sizeof(data) / sizeof(data[0]); i++)
         queue_enqueue(q, &data[i]);
 
-    
-	//fprintf(stderr, "*** TEST before_iterate ***\n");
-	//queue_iterate(q, print_queue);
-
 	/* Increment every item of the queue, delete item '42' */
     queue_iterate(q, iterator_inc);
-
-	//fprintf(stderr, "*** TEST after_iterate ***\n");
-	//queue_iterate(q, print_queue);
     TEST_ASSERT(data[0] == 2);
     TEST_ASSERT(queue_length(q) == 9);
 }
@@ -111,14 +110,18 @@ void test_iterator(void) {
 /* Enqueue one data point and remove it with queue_delete
 	-Expected result: Empty queue
 */
-void test_enqueue_delete(){
+// TODO: Edge case: making the queue empty causes seg fault
+void test_enqueue_delete() {
 	int data = 42;
+	int data2 = 200;
 	queue_t q = queue_create();
 
 	fprintf(stderr, "*** TEST enqueue_delete ***\n");
 	queue_enqueue(q, &data);
 	queue_enqueue(q, &data);
+
 	queue_iterate(q, iterator_inc);
+	// queue_enqueue(q, &data);
 	queue_iterate(q, print_queue);
 	TEST_ASSERT(queue_length(q) == 0);
 }

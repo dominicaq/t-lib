@@ -136,21 +136,28 @@ int queue_delete(queue_t queue, void *data) {
         // ERROR: queue / data is empty
         return -1;
     }
-
+    
     queue_t q = queue->front;
     while (q != NULL) {
-        // Skip logic until data is found
+        // Skip target data is found
         if (q->data != data) {
             q = q->rear;
             continue;
         }
 
         // Found target to remove
-        if (q->front == NULL) {
-            // Target data is in front
-            q->rear->front = q->front;
+        if (q->front == q->rear) {
+            // TODO: Handle 1 node queue delete
+        } else if (queue->front == q) {
+            // Target is head
+            q->rear->front = NULL;
+            queue->front = queue->front->rear;
+        } else if (queue->rear == q) {
+            // Target is rear
+            q->front->rear = NULL;
+            queue->rear = queue->rear->front;
         } else {
-            // Data in middle of queue
+            // Target in middle
             q->rear->front = q->front;
             q->front->rear = q->rear;
         }
