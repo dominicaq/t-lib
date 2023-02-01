@@ -4,7 +4,6 @@
 
 #include "queue.h"
 
-#include <stdio.h> // TODO: REMOVE
 struct queue {
     int length;
     void *data;
@@ -145,22 +144,22 @@ int queue_delete(queue_t queue, void *data) {
             continue;
         }
 
-        // Found target to remove
-        if (q->front == q->rear) {
-            // TODO: Handle 1 node queue delete
-        } else if (queue->front == q) {
-            // Target is head
-            q->rear->front = NULL;
-            queue->front = queue->front->rear;
-        } else if (queue->rear == q) {
-            // Target is rear
-            q->front->rear = NULL;
-            queue->rear = queue->rear->front;
-        } else {
+        if (queue->rear != q && queue->front != q) {
             // Target in middle
             q->rear->front = q->front;
             q->front->rear = q->rear;
-        }
+        } else {
+            // Target is on either edge of queue
+            if (queue->front == q) {
+                // Target is head
+                queue->front = queue->front->rear;
+            }
+
+            if (queue->rear == q) {
+                // Target is rear
+                queue->rear = queue->rear->front;
+            }
+        }    
 
         queue->length -= 1;
         queue_destroy(q);
