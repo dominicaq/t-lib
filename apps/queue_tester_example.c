@@ -36,8 +36,15 @@ static void print_queue(queue_t q, void *data) {
 	printf("Queue_list: %d\n", *(int*)a);
 }
 
-static void free_queue(queue_t q, void *data) {
-	// TODO: free queue for valgrind test
+// Misc functions
+// ============================================================================
+void free_queue(queue_t q) {
+	int *ptr;
+	int len = queue_length(q);
+	for (int i = 0; i < len; ++i) {
+		queue_dequeue(q, (void**)&ptr);
+	}
+	queue_destroy(q);
 }
 
 // Test functions
@@ -48,7 +55,7 @@ void test_create(void) {
 	fprintf(stderr, "*** TEST create ***\n");
 
 	TEST_ASSERT(q != NULL);
-	queue_destroy(q);
+	free_queue(q);
 }
 
 /* Enqueue/Dequeue simple */
@@ -62,7 +69,7 @@ void test_queue_simple(void)
 	queue_enqueue(q, &data);
 	queue_dequeue(q, (void**)&ptr);
 	TEST_ASSERT(ptr == &data);
-	queue_destroy(q);
+	free_queue(q);
 }
 
 /* Queue length */
@@ -84,17 +91,17 @@ void test_len(void) {
 	}
 
 	TEST_ASSERT(queue_length(q) == expected_len);
+	free_queue(q);
 }
 
 /* Test callbacks */
 void test_iterator(void) {
     queue_t q = queue_create();
     int data[] = {1, 2, 3, 4, 5, 42, 6, 7, 8, 9};
-    size_t i;
 
 	fprintf(stderr, "*** TEST iterator ***\n");
     /* Initialize the queue and enqueue items */
-    for (i = 0; i < sizeof(data) / sizeof(data[0]); i++)
+    for (size_t i = 0; i < sizeof(data) / sizeof(data[0]); i++)
         queue_enqueue(q, &data[i]);
 
 	/* Increment every item of the queue, delete item '42' */
@@ -102,6 +109,7 @@ void test_iterator(void) {
 	queue_iterate(q, print_queue);
     TEST_ASSERT(data[0] == 2);
     TEST_ASSERT(queue_length(q) == 9);
+	free_queue(q);
 }
 
 /* Enqueue one data point and remove it with queue_delete
@@ -120,14 +128,14 @@ void test_enqueue_delete() {
 	// TODO: mem leak when enqueue to empty queue
 	queue_enqueue(q, &data);
 	TEST_ASSERT(queue_length(q) == 1);
+	free_queue(q);
 }
 
 int main(void) {
 	test_create();
 	test_queue_simple();
 	test_len();
-	// test_iterator();
+	test_iterator();
 	// test_enqueue_delete();
-
 	return 0;
 }

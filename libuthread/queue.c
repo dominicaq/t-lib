@@ -29,7 +29,6 @@ queue_t queue_create(void) {
         return NULL;
     }
     new_queue->capacity = 8;
-    // TODO: Unsure how this will play out
     new_queue->ptr = malloc(new_queue->capacity);
     new_queue->head = 0;
     new_queue->length = 0;
@@ -76,13 +75,13 @@ int queue_enqueue(queue_t queue, void *data) {
     // Double capcity if it has been reached
     if (queue->length == queue->capacity) {
         queue->capacity *= 2;
+        queue->ptr = realloc(queue->ptr, queue->capacity);
     }
 
     int index = (queue->head + queue->length) & (queue->capacity - 1);
     queue->ptr[queue->head] = data;
     queue->head = index;
     ++queue->length;
-
     return 0;
 }
 
@@ -128,16 +127,10 @@ int queue_delete(queue_t queue, void *data) {
     }
 
     int found = 0;
-    void **ptr = NULL;
     for (int i = queue->head; i < queue->capacity; ++i) {
-        if (queue->ptr[i] == data && found == 0) {
-            found = 1;
-            ++i;
-        }
-        ptr[i] = queue->ptr[i];
+
     }
 
-    // memccpy(queue->ptr, ptr, queue->capacity, sizeof(**void));
     return found;
 }
 
@@ -161,10 +154,9 @@ int queue_iterate(queue_t queue, queue_func_t func) {
         return -1;
     }
 
-    int curr_index = queue->head;
-    while (curr_index != queue->length) {
-        func(queue, queue->ptr[curr_index]);
-        ++curr_index;
+    // Itterate through queues nodes with func callback
+    for (int i = queue->head; i < queue->length; ++i) {
+        func(queue, queue->ptr[i]);
     }
 
     return 0;
