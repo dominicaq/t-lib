@@ -82,4 +82,4 @@ test:
 	./queue_tester_example.x
 
 testv:
-	valgrind --track-origins=yes --leak-check=full ./queue_tester_example.x
+	valgrind --track-origins=yes --leak-check=full -s ./queue_tester_example.x

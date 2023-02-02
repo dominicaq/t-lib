@@ -4,6 +4,8 @@
 
 #include "queue.h"
 
+#define INITIAL_CAPACITY 8
+
 // TODO: REMOVE
 #include <stdio.h>
 
@@ -23,13 +25,14 @@ struct queue {
  * the new queue.
  */
 queue_t queue_create(void) {
-    queue_t new_queue = malloc(sizeof(queue_t));
+    queue_t new_queue = malloc(sizeof(struct queue));
     if (new_queue == NULL) {
         // ERROR: Bad malloc
         return NULL;
     }
-    new_queue->capacity = 8;
-    new_queue->ptr = malloc(new_queue->capacity);
+
+    new_queue->capacity = INITIAL_CAPACITY;
+    new_queue->ptr = malloc(sizeof(void*) * INITIAL_CAPACITY);
     new_queue->head = 0;
     new_queue->length = 0;
     return new_queue;
@@ -50,7 +53,7 @@ int queue_destroy(queue_t queue) {
         return -1;
     }
 
-    // Unsure how to free **ptr in a linear way
+    free(queue->ptr);
     free(queue);
     
     if (queue != NULL) {
@@ -72,10 +75,20 @@ int queue_destroy(queue_t queue) {
  * when enqueing. 0 if @data was successfully enqueued in @queue.
  */
 int queue_enqueue(queue_t queue, void *data) {
+    if (queue == NULL || data == NULL) {
+        // ERROR: Uninitalized queue / data
+        return -1;
+    }
+
     // Double capcity if it has been reached
-    if (queue->length == queue->capacity) {
+    if (queue->length >= queue->capacity) {
         queue->capacity *= 2;
-        queue->ptr = realloc(queue->ptr, queue->capacity);
+        queue->ptr = realloc(queue->ptr, sizeof(void*) * queue->capacity);
+    }
+
+    if (queue->ptr == NULL) {
+        // ERROR: Bad malloc
+        return -1;
     }
 
     int index = (queue->head + queue->length) & (queue->capacity - 1);
@@ -103,8 +116,7 @@ int queue_dequeue(queue_t queue, void **data) {
     }
 
     // Set data to head data;
-    int index = (queue->head + 1) & (queue->capacity);
-    *data = queue->ptr[index];
+    *data = queue->ptr[queue->length-1];
     --queue->length;
     return 0;
 }
@@ -148,6 +160,8 @@ int queue_delete(queue_t queue, void *data) {
  *
  * Return: -1 if @queue or @func are NULL, 0 otherwise.
  */
+
+// TODO: Pass data correctly to func
 int queue_iterate(queue_t queue, queue_func_t func) {
     if (queue == NULL || func == NULL) {
         // ERROR: Unintialized queue / func
@@ -156,7 +170,7 @@ int queue_iterate(queue_t queue, queue_func_t func) {
 
     // Itterate through queues nodes with func callback
     for (int i = queue->head; i < queue->length; ++i) {
-        func(queue, queue->ptr[i]);
+        func(queue, &queue->ptr[i]);
     }
 
     return 0;
