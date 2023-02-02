@@ -4,6 +4,9 @@
 
 #include "queue.h"
 
+// TODO: REMOVE
+#include <stdio.h>
+
 struct queue {
     int capacity; // Must be power of 2
     int head;
@@ -26,6 +29,7 @@ queue_t queue_create(void) {
         return NULL;
     }
     new_queue->capacity = 8;
+    // TODO: Unsure how this will play out
     new_queue->ptr = malloc(new_queue->capacity);
     new_queue->head = 0;
     new_queue->length = 0;
@@ -74,8 +78,9 @@ int queue_enqueue(queue_t queue, void *data) {
         queue->capacity *= 2;
     }
 
-    int index = (queue->head + queue->length) & (queue->capacity -1);
-    queue->ptr[index] = data;
+    int index = (queue->head + queue->length) & (queue->capacity - 1);
+    queue->ptr[queue->head] = data;
+    queue->head = index;
     ++queue->length;
 
     return 0;
@@ -97,11 +102,10 @@ int queue_dequeue(queue_t queue, void **data) {
         // ERROR: Empty queue / data
         return -1;
     }
-    
+
     // Set data to head data;
-    data = queue->ptr[queue->head];
-    // Move head index
-    queue->head = (queue->head + 1) & (queue->capacity - 1);
+    int index = (queue->head + 1) & (queue->capacity);
+    *data = queue->ptr[index];
     --queue->length;
     return 0;
 }
@@ -123,20 +127,18 @@ int queue_delete(queue_t queue, void *data) {
         return -1;
     }
 
-    int index = queue->head;
-    while (index != queue->length) {
-        if (queue->ptr[index] != data) {
-            ++index;
-            continue;
+    int found = 0;
+    void **ptr = NULL;
+    for (int i = queue->head; i < queue->capacity; ++i) {
+        if (queue->ptr[i] == data && found == 0) {
+            found = 1;
+            ++i;
         }
-        
-        // Remove target data
-        // - Free it
-        --queue->length;
-        return 0;
+        ptr[i] = queue->ptr[i];
     }
 
-    return -1;
+    // memccpy(queue->ptr, ptr, queue->capacity, sizeof(**void));
+    return found;
 }
 
 /*
