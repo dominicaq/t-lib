@@ -75,6 +75,11 @@ int queue_enqueue(queue_t queue, void *data) {
     }
 
     queue_t new_node = queue_create();
+    if (new_node == NULL) {
+        // ERROR: Bad malloc
+        return -1;
+    }
+    
     new_node->data = data;
     if (queue->front == NULL) {
         // Queue is empty
@@ -103,7 +108,7 @@ int queue_enqueue(queue_t queue, void *data) {
  * was set with the oldest item available in @queue.
  */
 int queue_dequeue(queue_t queue, void **data) {
-    if (queue == NULL || data == NULL) {
+    if (queue == NULL || data == NULL || queue->length == 0) {
         // ERROR: Uninitialized queue / data
         return -1;
     }

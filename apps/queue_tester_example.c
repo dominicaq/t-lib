@@ -5,9 +5,9 @@
 #include <queue.h>
 
 // TODO LIST:
-// - Edge Cases
-// - Freeing after test
-// Assert prompt
+// - Context errors
+
+// Tester
 // ============================================================================
 #define TEST_ASSERT(assert)				\
 do {									\
@@ -38,9 +38,18 @@ static void print_queue(queue_t q, void *data) {
 	}
 }
 
-static void free_queue(queue_t q, void *data) {
-	queue_destroy((queue_t)data);
+// Misc functions
+// ============================================================================
+/* Free queue */
+void free_queue(queue_t q) {
+	int *ptr;
+	int queue_len = queue_length(q);
+	for (int i = 0; i < queue_len; ++i) {
+		queue_dequeue(q, (void**)&ptr);
+	}
+	queue_destroy(q);
 }
+
 // Test functions
 // ============================================================================
 /* Create */
@@ -49,7 +58,7 @@ void test_create(void) {
 	fprintf(stderr, "*** TEST create ***\n");
 
 	TEST_ASSERT(q != NULL);
-	queue_destroy(q);
+	free_queue(q);
 }
 
 /* Enqueue/Dequeue simple */
@@ -63,7 +72,7 @@ void test_queue_simple(void)
 	queue_enqueue(q, &data);
 	queue_dequeue(q, (void**)&ptr);
 	TEST_ASSERT(ptr == &data);
-	queue_destroy(q);
+	free_queue(q);
 }
 
 /* Queue length */
@@ -85,7 +94,7 @@ void test_len(void) {
 	}
 
 	TEST_ASSERT(queue_length(q) == expected_len);
-	queue_destroy(q);
+	free_queue(q);
 }
 
 /* Test callbacks */
@@ -101,16 +110,12 @@ void test_iterator(void) {
 
 	/* Increment every item of the queue, delete item '42' */
     queue_iterate(q, iterator_inc);
-	queue_iterate(q, print_queue);
     TEST_ASSERT(data[0] == 2);
     TEST_ASSERT(queue_length(q) == 9);
-	queue_destroy(q);
+	free_queue(q);
 }
 
-/* Enqueue one data point and remove it with queue_delete
-	-Expected result: Empty queue
-*/
-// TODO: Edge case: making the queue empty causes seg fault
+/* Enqueue one data point and remove it with queue_delete */
 void test_enqueue_delete() {
 	int data = 42;
 	int data2 = 200;
@@ -121,11 +126,8 @@ void test_enqueue_delete() {
 	queue_enqueue(q, &data);
 
 	queue_iterate(q, iterator_inc);
-	queue_enqueue(q, &data);
-	queue_iterate(q, print_queue);
-	printf("len:%d\n ", queue_length(q));
-	TEST_ASSERT(queue_length(q) == 1);
-	queue_destroy(q);
+	TEST_ASSERT(queue_length(q) == 0);
+	free_queue(q);
 }
 
 int main(void) {
