@@ -5,10 +5,10 @@
 #include "queue.h"
 
 struct queue {
+    int capacity; // Must be power of 2
+    int head;
     int length;
-    void *data;
-    queue_t front;
-    queue_t rear;
+    void **ptr;
 };
 
 /*
@@ -20,15 +20,15 @@ struct queue {
  * the new queue.
  */
 queue_t queue_create(void) {
-    queue_t new_queue = malloc(sizeof(struct queue));
+    queue_t new_queue = malloc(sizeof(queue_t));
     if (new_queue == NULL) {
         // ERROR: Bad malloc
         return NULL;
     }
+    new_queue->capacity = 8;
+    new_queue->ptr = malloc(new_queue->capacity);
+    new_queue->head = 0;
     new_queue->length = 0;
-    new_queue->data = NULL;
-    new_queue->front = NULL;
-    new_queue->rear = NULL;
     return new_queue;
 }
 
@@ -43,15 +43,15 @@ queue_t queue_create(void) {
  */
 int queue_destroy(queue_t queue) {
     if (queue == NULL) {
-        // ERROR: Uninitialized queue node
+        // ERROR: Uninitalized queue
         return -1;
     }
 
-    // Free current queue node
+    // Unsure how to free **ptr in a linear way
     free(queue);
-
+    
     if (queue != NULL) {
-        // ERROR: Bad free
+        // ERROR: Bad malloc
         return -1;
     }
 
@@ -69,25 +69,15 @@ int queue_destroy(queue_t queue) {
  * when enqueing. 0 if @data was successfully enqueued in @queue.
  */
 int queue_enqueue(queue_t queue, void *data) {
-    if (queue == NULL || data == NULL) {
-        // ERROR: Uninitialized queue / data
-        return -1;
+    // Double capcity if it has been reached
+    if (queue->length == queue->capacity) {
+        queue->capacity *= 2;
     }
 
-    queue_t new_node = queue_create();
-    new_node->data = data;
-    if (queue->front == NULL) {
-        // Queue is empty
-        queue->rear = new_node;
-        queue->front = new_node;
-    } else {
-        new_node->front = queue->rear;
-        // Append to rear nodes rear
-        queue->rear->rear = new_node;
-        queue->rear = new_node;
-    }
+    int index = (queue->head + queue->length) & (queue->capacity -1);
+    queue->ptr[index] = data;
+    ++queue->length;
 
-    queue->length += 1;
     return 0;
 }
 
@@ -103,19 +93,16 @@ int queue_enqueue(queue_t queue, void *data) {
  * was set with the oldest item available in @queue.
  */
 int queue_dequeue(queue_t queue, void **data) {
-    if (queue == NULL || data == NULL) {
-        // ERROR: Uninitialized queue / data
+    if (queue == NULL || queue->length == 0 || data == NULL) {
+        // ERROR: Empty queue / data
         return -1;
     }
-
-    // Get front reference and set data
-    queue_t front = queue->front;
-    *data = front->data;
-
-    // Make front node equal to front nodes rear
-    queue->front = front->rear;
-    queue->length -= 1;
-    queue_destroy(front);
+    
+    // Set data to head data;
+    data = queue->ptr[queue->head];
+    // Move head index
+    queue->head = (queue->head + 1) & (queue->capacity - 1);
+    --queue->length;
     return 0;
 }
 
@@ -135,38 +122,20 @@ int queue_delete(queue_t queue, void *data) {
         // ERROR: queue / data is empty
         return -1;
     }
-    
-    queue_t q = queue->front;
-    while (q != NULL) {
-        // Skip target data is found
-        if (q->data != data) {
-            q = q->rear;
+
+    int index = queue->head;
+    while (index != queue->length) {
+        if (queue->ptr[index] != data) {
+            ++index;
             continue;
         }
-
-        if (queue->rear != q && queue->front != q) {
-            // Target in middle
-            q->rear->front = q->front;
-            q->front->rear = q->rear;
-        } else {
-            // Target is on either edge of queue
-            if (queue->front == q) {
-                // Target is head
-                queue->front = queue->front->rear;
-            }
-
-            if (queue->rear == q) {
-                // Target is rear
-                queue->rear = queue->rear->front;
-            }
-        }    
-
-        queue->length -= 1;
-        queue_destroy(q);
+        
+        // Remove target data
+        // - Free it
+        --queue->length;
         return 0;
     }
 
-    // ERROR: Data not found in queue
     return -1;
 }
 
@@ -190,20 +159,20 @@ int queue_iterate(queue_t queue, queue_func_t func) {
         return -1;
     }
 
-    // Iterate through queue and use func on current nodes data
-    queue_t q = queue->front;
-    while (q != NULL) {
-        func(queue, q->data);
-        q = q->rear;
+    int curr_index = queue->head;
+    while (curr_index != queue->length) {
+        func(queue, queue->ptr[curr_index]);
+        ++curr_index;
     }
-    
+
     return 0;
 }
 
 int queue_length(queue_t queue) {
     if (queue == NULL) {
-        // ERROR: Uninitialized queue
+        // ERROR: Uninitalized queue
         return -1;
     }
+
     return queue->length;
 }
