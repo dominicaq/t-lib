@@ -11,7 +11,7 @@
 
 struct queue {
     int capacity; // Must be power of 2
-    int head;
+    int front;
     int length;
     void **ptr;
 };
@@ -31,9 +31,14 @@ queue_t queue_create(void) {
         return NULL;
     }
 
+    new_queue->ptr = malloc(sizeof(void *) * INITIAL_CAPACITY);
+    if (new_queue->ptr == NULL) {
+        // ERROR: Bad malloc
+        return NULL;
+    }
+
     new_queue->capacity = INITIAL_CAPACITY;
-    new_queue->ptr = malloc(sizeof(void*) * INITIAL_CAPACITY);
-    new_queue->head = 0;
+    new_queue->front = 0;
     new_queue->length = 0;
     return new_queue;
 }
@@ -55,11 +60,6 @@ int queue_destroy(queue_t queue) {
 
     free(queue->ptr);
     free(queue);
-    
-    if (queue != NULL) {
-        // ERROR: Bad malloc
-        return -1;
-    }
 
     return 0;
 }
@@ -82,8 +82,17 @@ int queue_enqueue(queue_t queue, void *data) {
 
     // Double capcity if it has been reached
     if (queue->length >= queue->capacity) {
+        void **prev_ptr = queue->ptr;
         queue->capacity *= 2;
-        queue->ptr = realloc(queue->ptr, sizeof(void*) * queue->capacity);
+        queue->ptr = malloc(queue->capacity * sizeof(void *));
+        // Copy from front in prev into the start of the doubled queue
+        memcpy(queue->ptr, (prev_ptr + queue->front), (queue->length - queue->front));
+        // Case where queue loops back to the start, append the overflowing portion
+        if (queue->front != 0) {
+            memcpy((queue->ptr + queue->length - queue->front), prev_ptr, queue->front);
+        }
+        // Reset front index to 0
+        queue->front = 0;
     }
 
     if (queue->ptr == NULL) {
@@ -91,10 +100,9 @@ int queue_enqueue(queue_t queue, void *data) {
         return -1;
     }
 
-    int index = (queue->head + queue->length) & (queue->capacity - 1);
-    queue->ptr[queue->head] = data;
-    queue->head = index;
-    ++queue->length;
+    int tail = (queue->front + queue->length) % queue->capacity;
+    queue->ptr[tail] = data;
+    ++(queue->length);
     return 0;
 }
 
@@ -110,14 +118,15 @@ int queue_enqueue(queue_t queue, void *data) {
  * was set with the oldest item available in @queue.
  */
 int queue_dequeue(queue_t queue, void **data) {
-    if (queue == NULL || queue->length == 0 || data == NULL) {
+    if (queue == NULL || data == NULL || queue->length == 0) {
         // ERROR: Empty queue / data
         return -1;
     }
 
     // Set data to head data;
-    *data = queue->ptr[queue->length-1];
-    --queue->length;
+    *data = queue->ptr[queue->front];
+    queue->front = (queue->front + 1) % queue->capacity;
+    --(queue->length);
     return 0;
 }
 
@@ -139,7 +148,7 @@ int queue_delete(queue_t queue, void *data) {
     }
 
     int found = 0;
-    for (int i = queue->head; i < queue->capacity; ++i) {
+    for (int i = queue->front; i < queue->capacity; ++i) {
 
     }
 
@@ -169,8 +178,10 @@ int queue_iterate(queue_t queue, queue_func_t func) {
     }
 
     // Itterate through queues nodes with func callback
-    for (int i = queue->head; i < queue->length; ++i) {
-        func(queue, &queue->ptr[i]);
+    int i = queue->front;
+    for (int n = 0; n < queue->length; ++n) {
+        func(queue, queue->ptr[i]);
+        i = (i + 1) % queue->capacity;
     }
 
     return 0;

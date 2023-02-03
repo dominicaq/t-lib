@@ -33,7 +33,7 @@ static void iterator_inc(queue_t q, void *data) {
 
 static void print_queue(queue_t q, void *data) {
 	int *a = (int*)data;
-	printf("Queue_list: %d\n", *(int*)a);
+	printf("Queue_list: %d\n", *a);
 }
 
 // Misc functions
@@ -90,9 +90,8 @@ void test_len(void) {
 		queue_dequeue(q, (void**)&ret);
 	}
 
-	
 	TEST_ASSERT(queue_length(q) == expected_len);
-	free_queue(q);
+	// free_queue(q);
 }
 
 /* Test callbacks */
