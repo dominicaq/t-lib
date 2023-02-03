@@ -49,12 +49,6 @@ int queue_destroy(queue_t queue) {
 
     // Free current queue node
     free(queue);
-
-    if (queue != NULL) {
-        // ERROR: Bad free
-        return -1;
-    }
-
     return 0;
 }
 
@@ -92,7 +86,7 @@ int queue_enqueue(queue_t queue, void *data) {
         queue->rear = new_node;
     }
 
-    queue->length += 1;
+    ++(queue->length);
     return 0;
 }
 
@@ -119,7 +113,7 @@ int queue_dequeue(queue_t queue, void **data) {
 
     // Make front node equal to front nodes rear
     queue->front = front->rear;
-    queue->length -= 1;
+    --(queue->length);
     queue_destroy(front);
     return 0;
 }
@@ -166,8 +160,8 @@ int queue_delete(queue_t queue, void *data) {
             }
         }    
 
-        queue->length -= 1;
-        queue_destroy(q);
+        free(q);
+        --(queue->length);
         return 0;
     }
 

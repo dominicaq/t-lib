@@ -13,38 +13,30 @@
 // Thread states
 // ============================================================================
 // TODO: More than likely too many states
-#define READY	0
-#define BLOCKED	1
-#define RUNNING 2
-#define ZOMBIE 	3
-#define IDLE	4
-#define EXITED  5
-/* State Notes
-* When a thread leaves the ready queue, its running
-* Running state -> Blocked || Zombie || Ready
-* Blocked State -> Ready
-* Zombie State  -> Process Collection
-* Ready State 	-> Process Created
-* Idle State 	-> In a infinite loop, changes when exited loop
-*/
+#define IDLE	0
+#define YIELD   1
+#define RUNNING	2
+#define BLOCKED 3
+#define EXITED  4
+#define READY   5
 
 // Thread struct
 // ============================================================================
 typedef struct uthread_tcb {
-	int state;		   // Current thread state
+	int 		state; // Current thread state
 	uthread_ctx_t ctx; // Thread context
-	void *stack_head;  // Stack
+	void  *stack_head; // Stack
 }uthread_tcb;
 
 // Scheduler
 // ============================================================================
 queue_t 	READY_QUEUE;
 queue_t 	BLOCKED_QUEUE;
-uthread_tcb *CURR_THREAD;
+uthread_tcb *CURRENT_THREAD;
 
-struct uthread_tcb *uthread_current(void)
-{
+struct uthread_tcb *uthread_current(void) {
 	/* TODO Phase 2/3 */
+	return CURRENT_THREAD;
 }
 
 /*
@@ -55,8 +47,11 @@ struct uthread_tcb *uthread_current(void)
  */
 void uthread_yield(void) {
 	/* TODO Phase 2 */
-	CURR_THREAD->state = BLOCKED;
-	queue_enqueue(BLOCKED_QUEUE, CURR_THREAD);
+	uthread_tcb *current_thread = uthread_current();
+	current_thread->state = YIELD;
+	queue_enqueue(BLOCKED_QUEUE, current_thread);
+	// CURR_THREAD->state = YIELD;
+	// queue_enqueue(BLOCKED_QUEUE, CURR_THREAD);
 }
 
 /*
@@ -67,10 +62,10 @@ void uthread_yield(void) {
  *
  * This function shall never return.
  */
-void uthread_exit(void)
-{
+void uthread_exit(void) {
 	/* TODO Phase 2 */
-	// Kill the CURR_THREAD
+	// CURR_THREAD->state = EXITED;
+	// uthread_ctx_destroy_stack(CURR_THREAD->stack_head);
 }
 
 /*
@@ -91,10 +86,10 @@ int uthread_create(uthread_func_t func, void *arg) {
 		return -1;
 	}
 
-	// Initialize thread
+	// Initialize new thread
 	new_thread->state = READY;
 	new_thread->stack_head = uthread_ctx_alloc_stack();
-	int retval = uthread_ctx_init(&new_thread->ctx, new_thread->stack_head, func, arg);
+	int retval = uthread_ctx_init(&(new_thread->ctx), new_thread->stack_head, func, arg);
 	if (retval <= -1) {
 		// ERROR: Init context failed
 		return -1;
@@ -103,6 +98,7 @@ int uthread_create(uthread_func_t func, void *arg) {
 	queue_enqueue(READY_QUEUE, new_thread);
 	return 0;
 }
+
 
 /*
  * uthread_run - Run the multithreading library
@@ -120,30 +116,44 @@ int uthread_create(uthread_func_t func, void *arg) {
  * context creation).
  */
 int uthread_run(bool preempt, uthread_func_t func, void *arg) {
-	// Set current processes single thread as idle
-	// to schedule later for execution
-	CURR_THREAD->state = IDLE;
-	queue_enqueue(BLOCKED_QUEUE, CURR_THREAD);
+	// Init scheduler
+	READY_QUEUE   = queue_create();
+	BLOCKED_QUEUE = queue_create();
 	
-	// Create a new thread (initial_thread)
+	// Create initial thread
 	int retval = uthread_create(func, arg);
 	if (retval <= -1) {
 		// ERROR: Thread creation failed
 		return -1;
 	}
 
-	// Execute a infinite loop
+	// Set the current thread
+	queue_dequeue(READY_QUEUE, (void**)&CURRENT_THREAD);
+
+	// Idle thread
+	uthread_tcb *idle_thread = uthread_current();
+	idle_thread->state = IDLE;
+
+	// Execute infinite loop for idle thread
 	while (1) {
-		// - when there are no more threads ready to run, stop the idle loop and return
-		int len = queue_length(READY_QUEUE)
-		if (len == 0) {
+		func(arg);
+		// Go to next thread in ready queue
+		int num_threads = queue_length(READY_QUEUE);
+		if (num_threads == 0) {
+			// No more threads to run
 			return 0;
-		} else {
-			// - or yield to next available thread
+		} else if (CURRENT_THREAD->state == YIELD) {
+			// Yield to next available thread
+			uthread_tcb *incoming_thread;
+			queue_dequeue(READY_QUEUE, (void**)&incoming_thread);
+			// Switch context between curren thread and incoming tread
+			uthread_ctx_switch(&(CURRENT_THREAD->ctx), &(incoming_thread->ctx));
+			// When switching context, should not come back here
+			assert(0);
+
+		} else if (num_threads == -1) {
+			// - or deal with threads that reach completion and destroys their TCB
 		}
-		
-		
-		// - or deal with threads that reach completion and destroys their TCB
 	}
 }
 
