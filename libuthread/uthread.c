@@ -11,7 +11,7 @@
 #include "queue.h"
 
 // Thread states
-// ============================================================================
+// =============================================================================
 // TODO: More than likely too many states
 #define YIELD   0
 #define RUNNING	1
@@ -22,7 +22,7 @@
 #define ZOMBIE  5
 
 // Thread struct
-// ============================================================================
+// =============================================================================
 typedef struct uthread_tcb {
 	int 		state; // Current thread state
 	uthread_ctx_t ctx; // Thread context
@@ -30,7 +30,7 @@ typedef struct uthread_tcb {
 }uthread_tcb;
 
 // Scheduler
-// ============================================================================
+// =============================================================================
 queue_t 	READY_QUEUE;
 // queue_t 	BLOCKED_QUEUE;
 uthread_tcb *CURRENT_THREAD;
