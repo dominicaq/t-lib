@@ -13,12 +13,13 @@
 // Thread states
 // ============================================================================
 // TODO: More than likely too many states
-#define IDLE	0
-#define YIELD   1
-#define RUNNING	2
-#define BLOCKED 3
-#define EXITED  4
-#define READY   5
+#define YIELD   0
+#define RUNNING	1
+#define BLOCKED 2
+
+#define IDLE	3
+#define READY   4
+#define ZOMBIE  5
 
 // Thread struct
 // ============================================================================
@@ -31,12 +32,12 @@ typedef struct uthread_tcb {
 // Scheduler
 // ============================================================================
 queue_t 	READY_QUEUE;
-queue_t 	BLOCKED_QUEUE;
+// queue_t 	BLOCKED_QUEUE;
 uthread_tcb *CURRENT_THREAD;
 
 struct uthread_tcb *uthread_current(void) {
+	// Said this was for the system?
 	/* TODO Phase 2/3 */
-	return CURRENT_THREAD;
 }
 
 /*
@@ -47,11 +48,7 @@ struct uthread_tcb *uthread_current(void) {
  */
 void uthread_yield(void) {
 	/* TODO Phase 2 */
-	uthread_tcb *current_thread = uthread_current();
-	current_thread->state = YIELD;
-	queue_enqueue(BLOCKED_QUEUE, current_thread);
-	// CURR_THREAD->state = YIELD;
-	// queue_enqueue(BLOCKED_QUEUE, CURR_THREAD);
+	CURRENT_THREAD->state = YIELD;
 }
 
 /*
@@ -64,8 +61,8 @@ void uthread_yield(void) {
  */
 void uthread_exit(void) {
 	/* TODO Phase 2 */
-	// CURR_THREAD->state = EXITED;
-	// uthread_ctx_destroy_stack(CURR_THREAD->stack_head);
+	// CURRENT_THREAD->state = EXITED;
+	// uthread_ctx_destroy_stack(CURRENT_THREAD->stack_head);
 }
 
 /*
@@ -118,7 +115,7 @@ int uthread_create(uthread_func_t func, void *arg) {
 int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 	// Init scheduler
 	READY_QUEUE   = queue_create();
-	BLOCKED_QUEUE = queue_create();
+	// BLOCKED_QUEUE = queue_create();
 	
 	// Create initial thread
 	int retval = uthread_create(func, arg);
@@ -127,32 +124,36 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 		return -1;
 	}
 
-	// Set the current thread
+	// Set the initial thread
 	queue_dequeue(READY_QUEUE, (void**)&CURRENT_THREAD);
-
+	CURRENT_THREAD->state = IDLE;
 	// Idle thread
-	uthread_tcb *idle_thread = uthread_current();
-	idle_thread->state = IDLE;
-
+	// uthread_tcb *init_thread = uthread_current();
 	// Execute infinite loop for idle thread
 	while (1) {
 		func(arg);
+		// TODO: Note: uthread_ctx_bootstrap is a callback
 		// Go to next thread in ready queue
 		int num_threads = queue_length(READY_QUEUE);
-		if (num_threads == 0) {
-			// No more threads to run
-			return 0;
-		} else if (CURRENT_THREAD->state == YIELD) {
-			// Yield to next available thread
+		if (CURRENT_THREAD->state == YIELD || preempt) {
+			// Get incoming thread
 			uthread_tcb *incoming_thread;
 			queue_dequeue(READY_QUEUE, (void**)&incoming_thread);
-			// Switch context between curren thread and incoming tread
+			printf("STATE:%d\n ", incoming_thread->state);
+			// Add currnet thread to ready queue
+			queue_enqueue(READY_QUEUE, CURRENT_THREAD);
+
+			// Switch context between threads
 			uthread_ctx_switch(&(CURRENT_THREAD->ctx), &(incoming_thread->ctx));
 			// When switching context, should not come back here
 			assert(0);
 
 		} else if (num_threads == -1) {
 			// - or deal with threads that reach completion and destroys their TCB
+		} else if (num_threads == 0) {
+			// No more threads to run
+			// func(arg);
+			return 0;
 		}
 	}
 }
