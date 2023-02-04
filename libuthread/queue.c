@@ -192,8 +192,9 @@ int queue_iterate(queue_t queue, queue_func_t func) {
     // Iterate through queue and use func on current nodes data
     queue_t q = queue->front;
     while (q != NULL) {
+        queue_t next = q->rear;
         func(queue, q->data);
-        q = q->rear;
+        q = next;
     }
     
     return 0;
