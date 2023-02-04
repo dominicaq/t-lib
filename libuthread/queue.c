@@ -73,7 +73,7 @@ int queue_enqueue(queue_t queue, void *data) {
         // ERROR: Bad malloc
         return -1;
     }
-    
+
     new_node->data = data;
     if (queue->front == NULL) {
         // Queue is empty
@@ -134,7 +134,7 @@ int queue_delete(queue_t queue, void *data) {
         // ERROR: queue / data is empty
         return -1;
     }
-    
+
     queue_t q = queue->front;
     while (q != NULL) {
         // Skip target data is found
@@ -158,7 +158,7 @@ int queue_delete(queue_t queue, void *data) {
                 // Target is rear
                 queue->rear = queue->rear->front;
             }
-        }    
+        }
 
         free(q);
         --(queue->length);
@@ -196,7 +196,7 @@ int queue_iterate(queue_t queue, queue_func_t func) {
         func(queue, q->data);
         q = next;
     }
-    
+
     return 0;
 }
 
