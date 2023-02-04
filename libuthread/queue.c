@@ -4,11 +4,16 @@
 
 #include "queue.h"
 
+typedef struct node {
+    void *data;
+    struct node *prev;
+    struct node *next;
+} node;
+
 struct queue {
     int length;
-    void *data;
-    queue_t front;
-    queue_t rear;
+    node *head;
+    node *tail;
 };
 
 /*
@@ -26,9 +31,8 @@ queue_t queue_create(void) {
         return NULL;
     }
     new_queue->length = 0;
-    new_queue->data = NULL;
-    new_queue->front = NULL;
-    new_queue->rear = NULL;
+    new_queue->head = NULL;
+    new_queue->tail = NULL;
     return new_queue;
 }
 
@@ -42,6 +46,8 @@ queue_t queue_create(void) {
  * successfully destroyed.
  */
 int queue_destroy(queue_t queue) {
+    // TODO: fix issue below \/ \/ \/ \/
+    // if (queue == NULL || queue->length == 0) {
     if (queue == NULL) {
         // ERROR: Uninitialized queue node
         return -1;
@@ -68,22 +74,27 @@ int queue_enqueue(queue_t queue, void *data) {
         return -1;
     }
 
-    queue_t new_node = queue_create();
+    // Init new node
+    node *new_node = malloc(sizeof(node));
     if (new_node == NULL) {
         // ERROR: Bad malloc
         return -1;
     }
 
+    new_node->next = NULL;
+    new_node->prev = NULL;
     new_node->data = data;
-    if (queue->front == NULL) {
+
+    // Add to queue
+    if (queue->head == NULL) {
         // Queue is empty
-        queue->rear = new_node;
-        queue->front = new_node;
+        queue->head = new_node;
+        queue->tail = new_node;
     } else {
-        new_node->front = queue->rear;
+        new_node->prev = queue->tail;
         // Append to rear nodes rear
-        queue->rear->rear = new_node;
-        queue->rear = new_node;
+        queue->tail->next = new_node;
+        queue->tail = new_node;
     }
 
     ++(queue->length);
@@ -108,13 +119,14 @@ int queue_dequeue(queue_t queue, void **data) {
     }
 
     // Get front reference and set data
-    queue_t front = queue->front;
-    *data = front->data;
+    node *to_deq = queue->head;
+    *data = to_deq->data;
 
     // Make front node equal to front nodes rear
-    queue->front = front->rear;
+    queue->head = to_deq->next;
+    queue->tail->next = NULL;
     --(queue->length);
-    queue_destroy(front);
+    free(to_deq);
     return 0;
 }
 
@@ -135,38 +147,37 @@ int queue_delete(queue_t queue, void *data) {
         return -1;
     }
 
-    queue_t q = queue->front;
-    while (q != NULL) {
-        // Skip target data is found
-        if (q->data != data) {
-            q = q->rear;
-            continue;
-        }
-
-        if (queue->rear != q && queue->front != q) {
-            // Target in middle
-            q->rear->front = q->front;
-            q->front->rear = q->rear;
-        } else {
-            // Target is on either edge of queue
-            if (queue->front == q) {
-                // Target is head
-                queue->front = queue->front->rear;
-            }
-
-            if (queue->rear == q) {
-                // Target is rear
-                queue->rear = queue->rear->front;
-            }
-        }
-
-        free(q);
-        --(queue->length);
-        return 0;
+    // Iterate until target data is found
+    node *target = queue->head;
+    while (target != NULL && target->data != data) {
+        target = target->next;
     }
 
     // ERROR: Data not found in queue
-    return -1;
+    if (target == NULL) {
+        return -1;
+    }
+    
+    if (queue->head != target && queue->tail != target) {
+        // Target is in middle
+        target->prev->next = target->next;
+        target->next->prev = target->prev;
+    } else {
+        // Target is on either edge of queue
+        if (queue->head == target) {
+            // Target is head
+            queue->head = target->next;
+        }
+
+        if (queue->tail == target) {
+            // Target is rear
+            queue->tail = target->prev;
+        }
+    }
+
+    free(target);
+    --(queue->length);
+    return 0;
 }
 
 /*
@@ -190,11 +201,11 @@ int queue_iterate(queue_t queue, queue_func_t func) {
     }
 
     // Iterate through queue and use func on current nodes data
-    queue_t q = queue->front;
-    while (q != NULL) {
-        queue_t next = q->rear;
-        func(queue, q->data);
-        q = next;
+    node *curr_node = queue->head;
+    while (curr_node != NULL) {
+        node *next = curr_node->next;
+        func(queue, curr_node->data);
+        curr_node = next;
     }
 
     return 0;
