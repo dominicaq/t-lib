@@ -5,7 +5,7 @@
 #include <queue.h>
 
 // TODO LIST:
-// - Context errors
+// - More test functions
 
 // Tester
 // ============================================================================
@@ -48,6 +48,7 @@ void free_queue(queue_t q) {
 		queue_dequeue(q, (void**)&ptr);
 	}
 	queue_destroy(q);
+	free(q);
 }
 
 // Test functions

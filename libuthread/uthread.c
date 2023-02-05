@@ -139,7 +139,6 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 			// Get incoming thread
 			uthread_tcb *incoming_thread;
 			queue_dequeue(READY_QUEUE, (void**)&incoming_thread);
-			printf("STATE:%d\n ", incoming_thread->state);
 			// Add currnet thread to ready queue
 			queue_enqueue(READY_QUEUE, CURRENT_THREAD);
 
