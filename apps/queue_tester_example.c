@@ -191,11 +191,16 @@ void test_rigirous(void){
 	int data = 24;
 	int *ret;
 
-	// Expect no mem leaks
+	// Expect no mem leaks (Use valgrind)
 	for (int i = 0; i < num_itterations; ++i) {
 		queue_enqueue(q, &data);
 		for (int j = 0; j < num_itterations; ++j) {
-			queue_dequeue(q, (void**)&ret);
+			if ( i % 2 == 0) {
+				queue_iterate(q, iterator_inc);
+			} else {
+				queue_dequeue(q, (void**)&ret);
+			}
+			
 		}
 	}
 	TEST_ASSERT(queue_length(q) == 0);
