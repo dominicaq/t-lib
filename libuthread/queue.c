@@ -46,7 +46,7 @@ queue_t queue_create(void) {
  * successfully destroyed.
  */
 int queue_destroy(queue_t queue) {
-    if (queue == NULL || queue->length == 0) {
+    if (queue == NULL || queue->length > 0) {
         // ERROR: Uninitialized queue node
         return -1;
     }
