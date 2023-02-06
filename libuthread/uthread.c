@@ -70,9 +70,16 @@ void uthread_yield(void) {
  */
 void uthread_exit(void) {
 	/* TODO Phase 2 */
-	CURRENT_THREAD->state = ZOMBIE;
-	uthread_ctx_destroy_stack(CURRENT_THREAD->stack_head);
-	free(CURRENT_THREAD);
+	// Set reference to current running thread
+	uthread_tcb *prev_thread = CURRENT_THREAD;
+	prev_thread->state = ZOMBIE;
+
+	// Get next running thread if available 
+	queue_dequeue(READY_QUEUE, (void**)&CURRENT_THREAD);
+	CURRENT_THREAD->state = RUNNING;
+
+	// Switch context between threads
+	uthread_ctx_switch(&(prev_thread->ctx), &(CURRENT_THREAD->ctx));
 }
 
 /*
@@ -144,9 +151,8 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 		int num_threads = queue_length(READY_QUEUE);
 		if (CURRENT_THREAD->state == RUNNING) {
 			func(arg);
-		}
-		
-		if (num_threads == 0) {
+			uthread_exit();
+		} else if (num_threads == 0) {
 			// No more threads to run
 			return 0;
 		}
