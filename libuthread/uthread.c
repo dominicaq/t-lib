@@ -23,12 +23,12 @@ typedef struct uthread_tcb {
 	int 		state; // Current thread state
 	uthread_ctx_t ctx; // Thread context
 	void  *stack_head; // Stack
-}uthread_tcb;
+} uthread_tcb;
 
 // Scheduler
 // =============================================================================
 queue_t 	READY_QUEUE;
-// queue_t 	BLOCKED_QUEUE;
+queue_t 	BLOCKED_QUEUE;
 uthread_tcb *CURRENT_THREAD;
 
 struct uthread_tcb *uthread_current(void) {
@@ -43,21 +43,37 @@ struct uthread_tcb *uthread_current(void) {
  * This function is to be called from the currently active and running thread in
  * order to yield for other threads to execute.
  */
+void swap_threads(int use_enqueue) {
+    // Make sure theres threads available to swap to
+    int num_threads = queue_length(READY_QUEUE);
+    if (num_threads == 0) {
+        return;
+    }
+
+    uthread_tcb *prev_thread = CURRENT_THREAD;
+
+    // Add to ready queue
+    if (use_enqueue) {
+        queue_enqueue(READY_QUEUE, CURRENT_THREAD);
+    }
+    
+    // Get next running thread if available 
+    queue_dequeue(READY_QUEUE, (void**)&CURRENT_THREAD);
+    CURRENT_THREAD->state = RUNNING;
+
+    // Switch context between threads
+    uthread_ctx_switch(&(prev_thread->ctx), &(CURRENT_THREAD->ctx));
+}
+
+/*
+ * uthread_yield - Yield execution
+ *
+ * This function is to be called from the currently active and running thread in
+ * order to yield for other threads to execute.
+ */
 void uthread_yield(void) {
-	// TODO: Check if there are multiple threads
-	// Get previous thread
-	uthread_tcb *prev_thread = CURRENT_THREAD;
-	prev_thread->state = READY;
-	// Add current thread to ready queue
-	// TODO: This lets thread 1-2 run but prevents 3 from running
-	queue_enqueue(READY_QUEUE, CURRENT_THREAD);
-
-	// Get next running thread
-	queue_dequeue(READY_QUEUE, (void**)&CURRENT_THREAD);
-	CURRENT_THREAD->state = RUNNING;
-
-	// Switch context between threads
-	uthread_ctx_switch(&(prev_thread->ctx), &(CURRENT_THREAD->ctx));
+    CURRENT_THREAD->state = READY;
+    swap_threads(1);
 }
 
 /*
@@ -69,17 +85,8 @@ void uthread_yield(void) {
  * This function shall never return.
  */
 void uthread_exit(void) {
-	/* TODO Phase 2 */
-	// Set reference to current running thread
-	uthread_tcb *prev_thread = CURRENT_THREAD;
-	prev_thread->state = ZOMBIE;
-
-	// Get next running thread if available 
-	queue_dequeue(READY_QUEUE, (void**)&CURRENT_THREAD);
-	CURRENT_THREAD->state = RUNNING;
-
-	// Switch context between threads
-	uthread_ctx_switch(&(prev_thread->ctx), &(CURRENT_THREAD->ctx));
+    CURRENT_THREAD->state = ZOMBIE;
+    swap_threads(0);
 }
 
 /*
@@ -132,7 +139,7 @@ int uthread_create(uthread_func_t func, void *arg) {
 int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 	// Init scheduler
 	READY_QUEUE   = queue_create();
-	// BLOCKED_QUEUE = queue_create();
+	BLOCKED_QUEUE = queue_create();
 	
 	// Create initial thread
 	int retval = uthread_create(func, arg);
@@ -147,9 +154,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 
 	// Execute infinite loop for idle thread
 	while (1) {
-		// Go to next thread in ready queue
 		int num_threads = queue_length(READY_QUEUE);
 		if (CURRENT_THREAD->state == RUNNING) {
+            // Run the callback, then exit the current thread
 			func(arg);
 			uthread_exit();
 		} else if (num_threads == 0) {
@@ -159,13 +166,19 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 	}
 }
 
-void uthread_block(void)
-{
+void uthread_block(void) {
+    CURRENT_THREAD->state = BLOCKED;
+    queue_enqueue(BLOCKED_QUEUE, CURRENT_THREAD);
 	/* TODO Phase 3 */
 }
 
-void uthread_unblock(struct uthread_tcb *uthread)
-{
-	/* TODO Phase 3 */
+void uthread_unblock(struct uthread_tcb *uthread) {
+    // Dequeue from the blocked queue
+    uthread_tcb *unblocked_thread;
+    queue_dequeue(BLOCKED_QUEUE, (void**)&unblocked_thread);
+
+    // Add to the ready queue
+    unblocked_thread->state = READY;
+    queue_enqueue(READY_QUEUE, unblocked_thread);
 }
 

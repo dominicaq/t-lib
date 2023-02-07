@@ -6,6 +6,8 @@
 #include "private.h"
 
 struct semaphore {
+	size_t count;
+	
 	/* TODO Phase 3 */
 };
 
