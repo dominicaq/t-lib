@@ -12,17 +12,19 @@
 
 // Thread states
 // =============================================================================
-#define READY	0
-#define RUNNING 1
-#define BLOCKED	2
-#define ZOMBIE  3
+typedef enum {
+    READY,
+    RUNNING,
+    BLOCKED,
+    ZOMBIE
+} state_e;
 
 // Thread struct
 // =============================================================================
 typedef struct uthread_tcb {
-	int 		state; // Current thread state
-	uthread_ctx_t ctx; // Thread context
-	void  *stack_head; // Stack
+    state_e     state; // Current thread state
+    uthread_ctx_t ctx; // Thread context
+    void  *stack_head; // Stack
 } uthread_tcb;
 
 // Scheduler
@@ -32,18 +34,13 @@ queue_t 	BLOCKED_QUEUE;
 uthread_tcb *CURRENT_THREAD;
 
 struct uthread_tcb *uthread_current(void) {
-	// Said this was for the system?
-	/* TODO Phase 2/3 */
-	return CURRENT_THREAD;
+    // Said this was for the system?
+    /* TODO Phase 2/3 */
+    return CURRENT_THREAD;
 }
 
-/*
- * uthread_yield - Yield execution
- *
- * This function is to be called from the currently active and running thread in
- * order to yield for other threads to execute.
- */
-void swap_threads(int use_enqueue) {
+/* Handles swaping thread context from current thread to new thread */
+void swap_thread_ctx(void) {
     // Make sure theres threads available to swap to
     int num_threads = queue_length(READY_QUEUE);
     if (num_threads == 0) {
@@ -52,11 +49,6 @@ void swap_threads(int use_enqueue) {
 
     uthread_tcb *prev_thread = CURRENT_THREAD;
 
-    // Add to ready queue
-    if (use_enqueue) {
-        queue_enqueue(READY_QUEUE, CURRENT_THREAD);
-    }
-    
     // Get next running thread if available 
     queue_dequeue(READY_QUEUE, (void**)&CURRENT_THREAD);
     CURRENT_THREAD->state = RUNNING;
@@ -73,7 +65,8 @@ void swap_threads(int use_enqueue) {
  */
 void uthread_yield(void) {
     CURRENT_THREAD->state = READY;
-    swap_threads(1);
+    queue_enqueue(READY_QUEUE, CURRENT_THREAD);
+    swap_thread_ctx();
 }
 
 /*
@@ -86,7 +79,7 @@ void uthread_yield(void) {
  */
 void uthread_exit(void) {
     CURRENT_THREAD->state = ZOMBIE;
-    swap_threads(0);
+    swap_thread_ctx();
 }
 
 /*
@@ -101,23 +94,23 @@ void uthread_exit(void) {
  * context creation).
  */
 int uthread_create(uthread_func_t func, void *arg) {
-	uthread_tcb *new_thread = malloc(sizeof(uthread_tcb));
-	if (new_thread == NULL) {
-		// ERROR: Bad malloc
-		return -1;
-	}
+    uthread_tcb *new_thread = malloc(sizeof(uthread_tcb));
+    if (new_thread == NULL) {
+        // ERROR: Bad malloc
+        return -1;
+    }
 
-	// Initialize new thread
-	new_thread->state = READY;
-	new_thread->stack_head = uthread_ctx_alloc_stack();
-	int retval = uthread_ctx_init(&(new_thread->ctx), new_thread->stack_head, func, arg);
-	if (retval <= -1) {
-		// ERROR: Init context failed
-		return -1;
-	}
+    // Initialize new thread
+    new_thread->state = READY;
+    new_thread->stack_head = uthread_ctx_alloc_stack();
+    int retval = uthread_ctx_init(&(new_thread->ctx), new_thread->stack_head, func, arg);
+    if (retval <= -1) {
+        // ERROR: Init context failed
+        return -1;
+    }
 
-	queue_enqueue(READY_QUEUE, new_thread);
-	return 0;
+    queue_enqueue(READY_QUEUE, new_thread);
+    return 0;
 }
 
 
@@ -137,39 +130,42 @@ int uthread_create(uthread_func_t func, void *arg) {
  * context creation).
  */
 int uthread_run(bool preempt, uthread_func_t func, void *arg) {
-	// Init scheduler
-	READY_QUEUE   = queue_create();
-	BLOCKED_QUEUE = queue_create();
-	
-	// Create initial thread
-	int retval = uthread_create(func, arg);
-	if (retval <= -1) {
-		// ERROR: Thread creation failed
-		return -1;
-	}
+    // Init scheduler
+    READY_QUEUE   = queue_create();
+    BLOCKED_QUEUE = queue_create();
 
-	// Set the initial thread
-	queue_dequeue(READY_QUEUE, (void**)&CURRENT_THREAD);
-	CURRENT_THREAD->state = RUNNING;
+    // Create initial thread
+    int retval = uthread_create(func, arg);
+    if (retval <= -1) {
+        // ERROR: Thread creation failed
+        return -1;
+    }
 
-	// Execute infinite loop for idle thread
-	while (1) {
-		int num_threads = queue_length(READY_QUEUE);
-		if (CURRENT_THREAD->state == RUNNING) {
+    // Set the initial thread
+    queue_dequeue(READY_QUEUE, (void**)&CURRENT_THREAD);
+    CURRENT_THREAD->state = RUNNING;
+
+    // Execute infinite loop for idle thread
+    while (1) {
+        int num_threads = queue_length(READY_QUEUE);
+        if (CURRENT_THREAD->state == RUNNING || preempt) {
             // Run the callback, then exit the current thread
-			func(arg);
-			uthread_exit();
-		} else if (num_threads == 0) {
-			// No more threads to run
-			return 0;
-		}
-	}
+            func(arg);
+            uthread_exit();
+        } else if (num_threads == 0) {
+            // No more threads to run
+            return 0;
+        }
+    }
 }
 
 void uthread_block(void) {
+    // Block the current thread
     CURRENT_THREAD->state = BLOCKED;
     queue_enqueue(BLOCKED_QUEUE, CURRENT_THREAD);
-	/* TODO Phase 3 */
+
+    // Swap to next available thread
+    swap_thread_ctx();
 }
 
 void uthread_unblock(struct uthread_tcb *uthread) {
