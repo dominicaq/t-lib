@@ -5,6 +5,8 @@
 #include "sem.h"
 #include "private.h"
 
+#include "uthread.h"
+
 // All functions need to be complete for phase 3
 /*
  * sem_t - Semaphore type
@@ -17,6 +19,7 @@
  */
 struct semaphore {
     size_t count;
+    queue_t waiting_queue;
 };
 
 /*
@@ -35,6 +38,7 @@ sem_t sem_create(size_t count) {
         return NULL;
     }
 
+    new_sem->waiting_queue = queue_create();
     new_sem->count = count;
     return new_sem;
 }
@@ -75,12 +79,14 @@ int sem_down(sem_t sem) {
         return -1;
     }
 
-    if (sem->count == 0) {
-        // Block current thread
-    } else {    	
-        --(sem->count);
+    // Lock sem here
+
+    while (sem->count == 0) {
+        // Block self
     }
 
+    --(sem->count);
+    // Unlock sem here
     return 0;
 }
 
@@ -102,11 +108,18 @@ int sem_up(sem_t sem) {
         return -1;
     }
 
-    if (sem->count > 0) {
-        // Release oldest thread
+    // Lock sem here
+    ++(sem->count);
+
+    // Wake up first in line if any
+    int num_threads = queue_length(sem->waiting_queue);
+    if (num_threads > 0) {
+        // struct uthread_tcb *released_thread;
+        // queue_dequeue(sem->waiting_queue, (void**)&released_thread);
+        // released_thread->state = READY;
+        // uthread_unblock();
     }
 
-    ++(sem->count);
     return 0;
 }
 
