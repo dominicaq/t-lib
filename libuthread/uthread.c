@@ -203,12 +203,11 @@ void uthread_block(void) {
 }
 
 void uthread_unblock(struct uthread_tcb *uthread) {
-    // Dequeue from the blocked queue
-    uthread_tcb *unblocked_thread;
-    queue_dequeue(BLOCKED_QUEUE, (void**)&unblocked_thread);
+    // Delete from the blocked queue
+    queue_delete(BLOCKED_QUEUE, uthread);
 
     // Add to the ready queue
-    unblocked_thread->state = READY;
-    queue_enqueue(READY_QUEUE, unblocked_thread);
+    uthread->state = READY;
+    queue_enqueue(READY_QUEUE, uthread);
 }
 

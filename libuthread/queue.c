@@ -47,7 +47,7 @@ queue_t queue_create(void) {
  */
 int queue_destroy(queue_t queue) {
     if (queue == NULL || queue->length > 0) {
-        // ERROR: Uninitialized queue node
+        // ERROR: Bad destroy on NULL queue or non-empty queue
         return -1;
     }
 
@@ -112,17 +112,19 @@ int queue_enqueue(queue_t queue, void *data) {
  */
 int queue_dequeue(queue_t queue, void **data) {
     if (queue == NULL || data == NULL || queue->length == 0) {
-        // ERROR: Uninitialized queue / data
+        // ERROR: Uninitialized queue / data or empty queue
         return -1;
     }
 
-    // Get front reference and set data
+    // Get head reference and set data
     node *to_deq = queue->head;
     *data = to_deq->data;
 
-    // Make front node equal to front nodes rear
+    // Shift head node
     queue->head = to_deq->next;
-    queue->tail->next = NULL;
+    if (queue->head != NULL) {
+        queue->head->prev = NULL;
+    }
     --(queue->length);
     free(to_deq);
     return 0;
@@ -161,7 +163,7 @@ int queue_delete(queue_t queue, void *data) {
         target->prev->next = target->next;
         target->next->prev = target->prev;
     } else {
-        // Target is on either edge of queue
+        // Target is on either edge of queue (or both)
         if (queue->head == target) {
             // Target is head
             queue->head = target->next;

@@ -80,9 +80,11 @@ int sem_down(sem_t sem) {
     }
 
     // Lock sem here
-
+    // $Get current thread
     while (sem->count == 0) {
-        // Block self
+        // $Add to blocked queue
+        // $Add to sem's waiting queue
+        // $Yield
     }
 
     --(sem->count);
@@ -114,10 +116,8 @@ int sem_up(sem_t sem) {
     // Wake up first in line if any
     int num_threads = queue_length(sem->waiting_queue);
     if (num_threads > 0) {
-        // struct uthread_tcb *released_thread;
-        // queue_dequeue(sem->waiting_queue, (void**)&released_thread);
-        // released_thread->state = READY;
-        // uthread_unblock();
+        // $Dequeue waiting thread from sem's waiting_queue
+        // $call uthread_unblock
     }
 
     return 0;
