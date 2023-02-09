@@ -85,7 +85,7 @@ test:
 	./queue_tester_example.x
 
 test1:
-	./uthread_yield.x
+	valgrind --track-origins=yes --leak-check=full ./uthread_yield.x
 
 testv:
 	valgrind --track-origins=yes --leak-check=full ./queue_tester_example.x

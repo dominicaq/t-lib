@@ -70,6 +70,11 @@ void swap_thread_ctx(void) {
     // Get next running thread
     queue_dequeue(READY_QUEUE, (void**)&CURRENT_THREAD);
 
+    // Skip swapping if next thread is the same as prev
+    if (prev_thread == CURRENT_THREAD) {
+        return;
+    }
+
     // Switch context between threads
     CURRENT_THREAD->state = RUNNING;
     uthread_ctx_switch(&(prev_thread->ctx), &(CURRENT_THREAD->ctx));
@@ -180,6 +185,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
         // Exit the idle loop when ready queue is empty
         int num_threads = queue_length(READY_QUEUE);
         if (num_threads == 0) {
+            printf("im ivithessjhsdas\n");
             queue_enqueue(ZOMBIE_QUEUE, IDLE_THREAD);
             uthread_free();
             return 0;
