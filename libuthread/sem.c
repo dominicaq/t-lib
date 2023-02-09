@@ -19,6 +19,7 @@
  */
 struct semaphore {
     size_t count;
+    int lock;
     queue_t waiting_queue;
 };
 
@@ -40,6 +41,7 @@ sem_t sem_create(size_t count) {
 
     new_sem->waiting_queue = queue_create();
     new_sem->count = count;
+    new_sem->lock = 0;
     return new_sem;
 }
 
@@ -53,13 +55,23 @@ sem_t sem_create(size_t count) {
  * @sem. 0 is @sem was successfully destroyed.
  */
 int sem_destroy(sem_t sem) {
-    if (sem == NULL) {
-        // ERROR: Uninitalized sem
+    if (sem == NULL || queue_length(sem->waiting_queue) > 0) {
+        // ERROR: Bad sem destroy
         return -1;
     }
 
     free(sem);
     return 0;
+}
+
+/* Lock semaphore for a new available thread */
+void lock(int *lock) {
+
+}
+
+/* Unlock semaphore */
+void unlock(int *lock) {
+    
 }
 
 /*
@@ -79,18 +91,20 @@ int sem_down(sem_t sem) {
         return -1;
     }
 
-    // Lock sem here
-    // $Get current thread
+    lock(&(sem->lock));
+
+    struct uthread_tcb *current_thread = uthread_current();
     while (sem->count == 0) {
-        // $Add to blocked queue
-        // $Add to sem's waiting queue
-        // $Yield
+        queue_enqueue(sem->waiting_queue, current_thread);
+        uthread_block();
     }
 
     --(sem->count);
-    // Unlock sem here
+
+    unlock(&(sem->lock));
     return 0;
 }
+
 
 /*
  * sem_up - Release a semaphore
@@ -110,16 +124,17 @@ int sem_up(sem_t sem) {
         return -1;
     }
 
-    // Lock sem here
+    lock(&(sem->lock));
     ++(sem->count);
 
     // Wake up first in line if any
     int num_threads = queue_length(sem->waiting_queue);
     if (num_threads > 0) {
-        // $Dequeue waiting thread from sem's waiting_queue
-        // $call uthread_unblock
+        struct uthread_tcb *unblocked_thread;
+        queue_dequeue(sem->waiting_queue, (void**)&unblocked_thread);
+        uthread_unblock(unblocked_thread);
     }
 
+    unlock(&(sem->lock));
     return 0;
 }
-
