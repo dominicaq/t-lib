@@ -185,7 +185,6 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
         // Exit the idle loop when ready queue is empty
         int num_threads = queue_length(READY_QUEUE);
         if (num_threads == 0) {
-            printf("im ivithessjhsdas\n");
             queue_enqueue(ZOMBIE_QUEUE, IDLE_THREAD);
             uthread_free();
             return 0;
@@ -198,7 +197,7 @@ void uthread_block(void) {
     CURRENT_THREAD->state = BLOCKED;
     queue_enqueue(BLOCKED_QUEUE, CURRENT_THREAD);
 
-    // Swap to next available thread
+    // Yield to next available thread
     swap_thread_ctx();
 }
 

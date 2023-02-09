@@ -66,7 +66,7 @@ int sem_destroy(sem_t sem) {
 
 /* Lock semaphore for a new available thread */
 void lock(int *lock) {
-
+    while (test_and_set(lock) == 1);
 }
 
 /* Unlock semaphore */
@@ -125,6 +125,7 @@ int sem_up(sem_t sem) {
     }
 
     lock(&(sem->lock));
+
     ++(sem->count);
 
     // Wake up first in line if any
