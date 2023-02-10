@@ -61,10 +61,6 @@ int sem_destroy(sem_t sem) {
     }
 
     // Free waiting queue
-    struct uthread_tcb *current_thread;
-    while (queue_dequeue(sem->waiting_queue, (void**)&current_thread) != -1) {
-        free(current_thread);
-    }
     queue_destroy(sem->waiting_queue);
     free(sem);
     return 0;

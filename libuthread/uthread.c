@@ -32,7 +32,7 @@ struct uthread_tcb *uthread_current(void) {
 }
 
 /* Free all zombie threads */
-void uthread_free(void) {
+void uthread_zombie_free(void) {
     // Free zombie threads
     uthread_tcb *target;
     while (queue_dequeue(ZOMBIE_QUEUE, (void**)&target) != -1) {
@@ -46,14 +46,18 @@ void uthread_free(void) {
     queue_destroy(READY_QUEUE);
 }
 
+void uthread_swap_to_idle(void) {
+    uthread_ctx_switch(&(CURRENT_THREAD->ctx), &(IDLE_CTX));
+}
+
 void uthread_yield(void) {
     queue_enqueue(READY_QUEUE, CURRENT_THREAD);
-    uthread_ctx_switch(&(CURRENT_THREAD->ctx), &(IDLE_CTX));
+    uthread_swap_to_idle();
 }
 
 void uthread_exit(void) {
     queue_enqueue(ZOMBIE_QUEUE, CURRENT_THREAD);
-    uthread_ctx_switch(&(CURRENT_THREAD->ctx), &(IDLE_CTX));
+    uthread_swap_to_idle();
 }
 
 int uthread_create(uthread_func_t func, void *arg) {
@@ -82,7 +86,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
     ZOMBIE_QUEUE  = queue_create();
     int retval;
 
-    // // Create the user created thread
+    // Create initial the user created thread
     retval = uthread_create(func, arg);
     if (retval <= -1) {
         // ERROR: Thread creation failed
@@ -94,7 +98,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
         // Exit the idle loop when ready queue is empty
         int num_threads = queue_length(READY_QUEUE);
         if (num_threads == 0) {
-            uthread_free();
+            uthread_zombie_free();
             return 0;
         }
 
@@ -107,7 +111,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 void uthread_block(void) {
     // Block the current thread
     queue_enqueue(BLOCKED_QUEUE, CURRENT_THREAD);
-    uthread_yield();
+    uthread_swap_to_idle();
 }
 
 void uthread_unblock(struct uthread_tcb *uthread) {
