@@ -13,50 +13,35 @@
 // Thread struct
 // =============================================================================
 typedef struct uthread_tcb {
+    int is_zombie;
     uthread_ctx_t ctx; // Thread context
     void  *stack_head; // Stack
 } uthread_tcb;
 
 // Scheduler
 // =============================================================================
-queue_t 	READY_QUEUE;
-queue_t 	BLOCKED_QUEUE;
-queue_t     ZOMBIE_QUEUE;
-uthread_tcb *CURRENT_THREAD = NULL;
-static uthread_ctx_t IDLE_CTX;
-
+queue_t     ready_queue;
+queue_t     blocked_queue;
+uthread_tcb *current_thread = NULL;
+static uthread_ctx_t idle_ctx;
 
 
 struct uthread_tcb *uthread_current(void) {
-    return CURRENT_THREAD;
-}
-
-/* Free all zombie threads */
-void uthread_zombie_free(void) {
-    // Free zombie threads
-    uthread_tcb *target;
-    while (queue_dequeue(ZOMBIE_QUEUE, (void**)&target) != -1) {
-        uthread_ctx_destroy_stack(target->stack_head);
-        free(target);
-    }
-
-    // Free Global queues
-    queue_destroy(ZOMBIE_QUEUE);
-    queue_destroy(BLOCKED_QUEUE);
-    queue_destroy(READY_QUEUE);
+    return current_thread;
 }
 
 void uthread_swap_to_idle(void) {
-    uthread_ctx_switch(&(CURRENT_THREAD->ctx), &(IDLE_CTX));
+    uthread_ctx_switch(&(current_thread->ctx), &(idle_ctx));
 }
 
 void uthread_yield(void) {
-    queue_enqueue(READY_QUEUE, CURRENT_THREAD);
+    queue_enqueue(ready_queue, current_thread);
     uthread_swap_to_idle();
 }
 
 void uthread_exit(void) {
-    queue_enqueue(ZOMBIE_QUEUE, CURRENT_THREAD);
+    current_thread->is_zombie = 1;
+    queue_enqueue(ready_queue, current_thread);
     uthread_swap_to_idle();
 }
 
@@ -69,21 +54,26 @@ int uthread_create(uthread_func_t func, void *arg) {
 
     // Initialize new thread
     new_thread->stack_head = uthread_ctx_alloc_stack();
+    if (new_thread->stack_head == NULL) {
+        // ERROR: Failed to alloc stack
+        return -1;
+    }
+
     int retval = uthread_ctx_init(&(new_thread->ctx), new_thread->stack_head, func, arg);
     if (retval <= -1) {
         // ERROR: Init context failed
         return -1;
     }
 
-    queue_enqueue(READY_QUEUE, new_thread);
+    new_thread->is_zombie = 0;
+    queue_enqueue(ready_queue, new_thread);
     return 0;
 }
 
 int uthread_run(bool preempt, uthread_func_t func, void *arg) {
     // Init scheduler
-    READY_QUEUE   = queue_create();
-    BLOCKED_QUEUE = queue_create();
-    ZOMBIE_QUEUE  = queue_create();
+    ready_queue   = queue_create();
+    blocked_queue = queue_create();
     int retval;
 
     // Create initial the user created thread
@@ -93,31 +83,47 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
         return -1;
     }
 
+    preempt_start(preempt);
+
     // Idle loop
     while (1) {
         // Exit the idle loop when ready queue is empty
-        int num_threads = queue_length(READY_QUEUE);
+        int num_threads = queue_length(ready_queue);
         if (num_threads == 0) {
-            uthread_zombie_free();
-            return 0;
+            break;
         }
 
-        // Iniital swap to the next context
-        queue_dequeue(READY_QUEUE, (void**)&CURRENT_THREAD);
-        uthread_ctx_switch(&(IDLE_CTX), &(CURRENT_THREAD->ctx));
+        
+        queue_dequeue(ready_queue, (void**)&current_thread);
+        if (current_thread->is_zombie > 0) {
+            // Free current zombie thread
+            uthread_ctx_destroy_stack(current_thread->stack_head);
+            free(current_thread);
+        } else {
+            // Iniital swap to the next context
+            uthread_ctx_switch(&(idle_ctx), &(current_thread->ctx));
+        }
     }
+
+    if (preempt) {
+        preempt_disable();
+    }
+
+    queue_destroy(blocked_queue);
+    queue_destroy(ready_queue);
+    return 0;
 }
 
 void uthread_block(void) {
     // Block the current thread
-    queue_enqueue(BLOCKED_QUEUE, CURRENT_THREAD);
+    queue_enqueue(blocked_queue, current_thread);
     uthread_swap_to_idle();
 }
 
 void uthread_unblock(struct uthread_tcb *uthread) {
     // Delete from the blocked queue
-    queue_delete(BLOCKED_QUEUE, uthread);
+    queue_delete(blocked_queue, uthread);
 
     // Add to the ready queue
-    queue_enqueue(READY_QUEUE, uthread);
+    queue_enqueue(ready_queue, uthread);
 }

@@ -15,10 +15,18 @@
  */
 #define HZ 100
 
+bool USE_PREEMPT;
+struct sigaction SA;
+
+void preempt_handler(int signum) {
+    uthread_yield();
+}
+
 /*
  * preempt_disable - Disable preemption
  */
 void preempt_disable(void) {
+    USE_PREEMPT = false;
 	/* TODO Phase 4 */
 }
 
@@ -26,6 +34,7 @@ void preempt_disable(void) {
  * preempt_enable - Enable preemption
  */
 void preempt_enable(void) {
+    USE_PREEMPT = true;
 	/* TODO Phase 4 */
 }
 
@@ -39,9 +48,18 @@ void preempt_enable(void) {
  * If @preempt is false, don't start preemption; all the other functions from
  * the preemption API should then be ineffective.
  */
-void preempt_start(bool preempt)
-{
-	/* TODO Phase 4 */
+void preempt_start(bool preempt) {
+    if (preempt == false) {
+        return;
+    }
+
+    /* Set up handler for alarm */
+    SA.sa_handler = preempt_handler;
+    sigemptyset(&SA.sa_mask);
+    SA.sa_flags = 0;
+    sigaction(SIGALRM, &SA, NULL);
+    /* Configure preempt alarm */
+    alarm(1 / HZ);
 }
 
 /*
@@ -50,8 +68,8 @@ void preempt_start(bool preempt)
  * Restore previous timer configuration, and previous action associated to
  * virtual alarm signals.
  */
-void preempt_stop(void)
-{
+void preempt_stop(void) {
+
 	/* TODO Phase 4 */
 }
 

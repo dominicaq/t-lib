@@ -5,8 +5,6 @@
 #include "sem.h"
 #include "private.h"
 
-#include "uthread.h"
-
 // All functions need to be complete for phase 3
 /*
  * sem_t - Semaphore type
@@ -19,7 +17,6 @@
  */
 struct semaphore {
     size_t count;
-    int lock;
     queue_t waiting_queue;
 };
 
@@ -41,7 +38,6 @@ sem_t sem_create(size_t count) {
 
     new_sem->waiting_queue = queue_create();
     new_sem->count = count;
-    new_sem->lock = 0;
     return new_sem;
 }
 
