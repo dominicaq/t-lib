@@ -33,7 +33,7 @@ struct semaphore {
  * allocating the new semaphore.
  */
 sem_t sem_create(size_t count) {
-    sem_t new_sem = malloc(sizeof(sem_t));
+    sem_t new_sem = malloc(sizeof(struct semaphore));
     if (new_sem == NULL) {
         // ERROR: Bad malloc 
         return NULL;
@@ -60,18 +60,14 @@ int sem_destroy(sem_t sem) {
         return -1;
     }
 
+    // Free waiting queue
+    struct uthread_tcb *current_thread;
+    while (queue_dequeue(sem->waiting_queue, (void**)&current_thread) != -1) {
+        free(current_thread);
+    }
+    queue_destroy(sem->waiting_queue);
     free(sem);
     return 0;
-}
-
-/* Lock semaphore for a new available thread */
-void lock(int *lock) {
-    while (test_and_set(lock) == 1);
-}
-
-/* Unlock semaphore */
-void unlock(int *lock) {
-    
 }
 
 /*
@@ -91,17 +87,13 @@ int sem_down(sem_t sem) {
         return -1;
     }
 
-    lock(&(sem->lock));
-
-    struct uthread_tcb *current_thread = uthread_current();
     while (sem->count == 0) {
+        struct uthread_tcb *current_thread = uthread_current();
         queue_enqueue(sem->waiting_queue, current_thread);
         uthread_block();
     }
 
     --(sem->count);
-
-    unlock(&(sem->lock));
     return 0;
 }
 
@@ -124,8 +116,6 @@ int sem_up(sem_t sem) {
         return -1;
     }
 
-    lock(&(sem->lock));
-
     ++(sem->count);
 
     // Wake up first in line if any
@@ -136,6 +126,5 @@ int sem_up(sem_t sem) {
         uthread_unblock(unblocked_thread);
     }
 
-    unlock(&(sem->lock));
     return 0;
 }

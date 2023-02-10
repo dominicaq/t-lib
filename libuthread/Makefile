@@ -12,6 +12,13 @@ ifneq ($(V),1)
 Q = @
 endif
 
+## Debug flag
+ifneq ($(D),1)
+CFLAGS	+= -O2
+else
+CFLAGS	+= -g
+endif
+
 # Default rule
 all: $(lib)
 

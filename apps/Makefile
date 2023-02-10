@@ -90,3 +90,6 @@ test1:
 
 testv:
 	valgrind --track-origins=yes --leak-check=full ./queue_tester_example.x
+
+testp:
+	valgrind --track-origins=yes --leak-check=full ./sem_prime.x

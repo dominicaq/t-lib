@@ -15,21 +15,41 @@
  */
 #define HZ 100
 
-void preempt_disable(void)
-{
+/*
+ * preempt_disable - Disable preemption
+ */
+void preempt_disable(void) {
 	/* TODO Phase 4 */
 }
 
-void preempt_enable(void)
-{
+/*
+ * preempt_enable - Enable preemption
+ */
+void preempt_enable(void) {
 	/* TODO Phase 4 */
 }
 
+/*
+ * preempt_start - Start thread preemption
+ * @preempt: Enable preemption if true
+ *
+ * Configure a timer that must fire a virtual alarm at a frequency of 100 Hz and
+ * setup a timer handler that forcefully yields the currently running thread.
+ *
+ * If @preempt is false, don't start preemption; all the other functions from
+ * the preemption API should then be ineffective.
+ */
 void preempt_start(bool preempt)
 {
 	/* TODO Phase 4 */
 }
 
+/*
+ * preempt_stop - Stop thread preemption
+ *
+ * Restore previous timer configuration, and previous action associated to
+ * virtual alarm signals.
+ */
 void preempt_stop(void)
 {
 	/* TODO Phase 4 */

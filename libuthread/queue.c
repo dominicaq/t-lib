@@ -158,21 +158,25 @@ int queue_delete(queue_t queue, void *data) {
         return -1;
     }
     
-    if (queue->head != target && queue->tail != target) {
+    if (target->prev != NULL) {
         // Target is in middle
         target->prev->next = target->next;
-        target->next->prev = target->prev;
-    } else {
-        // Target is on either edge of queue (or both)
-        if (queue->head == target) {
-            // Target is head
-            queue->head = target->next;
-        }
+        
+    } 
 
-        if (queue->tail == target) {
-            // Target is rear
-            queue->tail = target->prev;
-        }
+    if (target->next != NULL) {
+        target->next->prev = target->prev;
+    }
+
+    // Target is on either edge of queue (or both)
+    if (queue->head == target) {
+        // Target is head
+        queue->head = target->next;
+    }
+
+    if (queue->tail == target) {
+        // Target is rear
+        queue->tail = target->prev;
     }
 
     free(target);
