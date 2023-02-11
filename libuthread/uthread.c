@@ -92,38 +92,35 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
         if (num_threads == 0) {
             break;
         }
-
         
         queue_dequeue(ready_queue, (void**)&current_thread);
+
+        // TODO: "Not blazing" - Noah
+        // Free current thread if its a zombie
         if (current_thread->is_zombie > 0) {
-            // Free current zombie thread
             uthread_ctx_destroy_stack(current_thread->stack_head);
             free(current_thread);
-        } else {
-            // Iniital swap to the next context
-            uthread_ctx_switch(&(idle_ctx), &(current_thread->ctx));
+            continue;
         }
+
+        // Swap to the next ctx
+        uthread_ctx_switch(&(idle_ctx), &(current_thread->ctx));
     }
 
-    if (preempt) {
-        preempt_disable();
-    }
-
+    preempt_disable();
     queue_destroy(blocked_queue);
     queue_destroy(ready_queue);
     return 0;
 }
 
 void uthread_block(void) {
-    // Block the current thread
+    // Block the current thread and swap tp idle ctx
     queue_enqueue(blocked_queue, current_thread);
     uthread_swap_to_idle();
 }
 
 void uthread_unblock(struct uthread_tcb *uthread) {
-    // Delete from the blocked queue
+    // Delete from blocked queue and add to ready queue
     queue_delete(blocked_queue, uthread);
-
-    // Add to the ready queue
     queue_enqueue(ready_queue, uthread);
 }
