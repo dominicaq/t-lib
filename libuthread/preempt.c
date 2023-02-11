@@ -15,10 +15,37 @@
  */
 #define HZ 100
 
-bool USE_PREEMPT;
-struct sigaction SA;
+bool use_preempt;
+struct sigaction sig_action;
+long int initial_interval = 0;
+long int preempt_interval = 0;
+long int current_interval = 0;
 
-void preempt_handler(int signum) {
+// Initialize the preempt interrupt timer
+// - When process time expires, SIGVTALRM signal is generated
+unsigned int preempt_set_timer(long int seconds) {
+    struct itimerval prev;
+    struct itimerval curr;
+
+    curr.it_interval.tv_usec = 0;
+    curr.it_interval.tv_sec = 0;
+    curr.it_value.tv_usec = 0;
+    curr.it_value.tv_sec = seconds;
+    int retval = setitimer(ITIMER_VIRTUAL, &curr, &prev);
+    // Get processes original interval value
+    if (initial_interval == 0) {
+        initial_interval = prev.it_value.tv_sec;
+    }
+
+    if (retval < 0) {
+        return 0;
+    }
+
+    return prev.it_value.tv_sec;
+}
+
+
+void preempt_timer_handler(int signum) {
     uthread_yield();
 }
 
@@ -26,7 +53,7 @@ void preempt_handler(int signum) {
  * preempt_disable - Disable preemption
  */
 void preempt_disable(void) {
-    USE_PREEMPT = false;
+    use_preempt = false;
 	/* TODO Phase 4 */
 }
 
@@ -34,7 +61,7 @@ void preempt_disable(void) {
  * preempt_enable - Enable preemption
  */
 void preempt_enable(void) {
-    USE_PREEMPT = true;
+    use_preempt = true;
 	/* TODO Phase 4 */
 }
 
@@ -49,17 +76,18 @@ void preempt_enable(void) {
  * the preemption API should then be ineffective.
  */
 void preempt_start(bool preempt) {
-    if (preempt == false) {
+    if (preempt == false || use_preempt == false) {
         return;
     }
 
     /* Set up handler for alarm */
-    SA.sa_handler = preempt_handler;
-    sigemptyset(&SA.sa_mask);
-    SA.sa_flags = 0;
-    sigaction(SIGALRM, &SA, NULL);
+    sig_action.sa_handler = preempt_timer_handler;
+    sigemptyset(&sig_action.sa_mask);
+    sig_action.sa_flags = 0;
+    sigaction(SIGVTALRM, &sig_action, NULL);
     /* Configure preempt alarm */
-    alarm(1 / HZ);
+    long int seconds = 1 / HZ;
+    preempt_set_timer(seconds);
 }
 
 /*
@@ -69,7 +97,9 @@ void preempt_start(bool preempt) {
  * virtual alarm signals.
  */
 void preempt_stop(void) {
-
+    if (use_preempt == false) {
+        return;
+    }
 	/* TODO Phase 4 */
 }
 
