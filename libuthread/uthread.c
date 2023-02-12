@@ -25,7 +25,6 @@ queue_t     blocked_queue;
 uthread_tcb *current_thread = NULL;
 static uthread_ctx_t idle_ctx;
 
-
 struct uthread_tcb *uthread_current(void) {
     return current_thread;
 }
@@ -74,16 +73,13 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
     // Init scheduler
     ready_queue   = queue_create();
     blocked_queue = queue_create();
-    int retval;
 
     // Create initial the user created thread
-    retval = uthread_create(func, arg);
+    int retval = uthread_create(func, arg);
     if (retval <= -1) {
         // ERROR: Thread creation failed
         return -1;
     }
-
-    preempt_start(preempt);
 
     // Idle loop
     while (1) {
@@ -93,9 +89,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
             break;
         }
         
+        preempt_stop();
         queue_dequeue(ready_queue, (void**)&current_thread);
 
-        // TODO: "Not blazing" - Noah
         // Free current thread if its a zombie
         if (current_thread->is_zombie > 0) {
             uthread_ctx_destroy_stack(current_thread->stack_head);
@@ -103,7 +99,8 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
             continue;
         }
 
-        // Swap to the next ctx
+        // Swap to the next context
+        preempt_start(preempt);
         uthread_ctx_switch(&(idle_ctx), &(current_thread->ctx));
     }
 

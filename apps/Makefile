@@ -7,6 +7,7 @@ programs := \
 	sem_prime.x \
 	sem_count.x \
 	sem_buffer.x \
+	preempt_tester.x \
 
 # User-level thread library
 UTHREADLIB := libuthread

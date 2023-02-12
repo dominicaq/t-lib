@@ -14,38 +14,17 @@
  * 100Hz is 100 times per second
  */
 #define HZ 100
+#define ONE_NANO_SECOND 1000000000
 
 bool use_preempt;
-struct sigaction sig_action;
-long int initial_interval = 0;
-long int preempt_interval = 0;
-long int current_interval = 0;
+struct sigaction sa;
+struct itimerval timer;
 
-// Initialize the preempt interrupt timer
-// - When process time expires, SIGVTALRM signal is generated
-unsigned int preempt_set_timer(long int seconds) {
-    struct itimerval prev;
-    struct itimerval curr;
-
-    curr.it_interval.tv_usec = 0;
-    curr.it_interval.tv_sec = 0;
-    curr.it_value.tv_usec = 0;
-    curr.it_value.tv_sec = seconds;
-    int retval = setitimer(ITIMER_VIRTUAL, &curr, &prev);
-    // Get processes original interval value
-    if (initial_interval == 0) {
-        initial_interval = prev.it_value.tv_sec;
+void preempt_handler(int signum) {
+    if (signum != SIGVTALRM) {
+        return;
     }
-
-    if (retval < 0) {
-        return 0;
-    }
-
-    return prev.it_value.tv_sec;
-}
-
-
-void preempt_timer_handler(int signum) {
+    printf("signaled\n");
     uthread_yield();
 }
 
@@ -54,7 +33,6 @@ void preempt_timer_handler(int signum) {
  */
 void preempt_disable(void) {
     use_preempt = false;
-	/* TODO Phase 4 */
 }
 
 /*
@@ -62,7 +40,6 @@ void preempt_disable(void) {
  */
 void preempt_enable(void) {
     use_preempt = true;
-	/* TODO Phase 4 */
 }
 
 /*
@@ -76,18 +53,27 @@ void preempt_enable(void) {
  * the preemption API should then be ineffective.
  */
 void preempt_start(bool preempt) {
-    if (preempt == false || use_preempt == false) {
+    if (preempt == false) {
         return;
     }
 
-    /* Set up handler for alarm */
-    sig_action.sa_handler = preempt_timer_handler;
-    sigemptyset(&sig_action.sa_mask);
-    sig_action.sa_flags = 0;
-    sigaction(SIGVTALRM, &sig_action, NULL);
-    /* Configure preempt alarm */
-    long int seconds = 1 / HZ;
-    preempt_set_timer(seconds);
+    /* Install timer_handler as the signal handler for SIGVTALRM. */
+    sa.sa_handler = preempt_handler;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask);
+    sigaction(SIGVTALRM, &sa, NULL);
+
+    // Timer lifetime
+    long interval = ONE_NANO_SECOND / HZ;
+    timer.it_value.tv_sec = 0;
+    timer.it_value.tv_usec = interval;
+    // Timer interval
+    timer.it_interval.tv_sec = 0;
+    timer.it_interval.tv_usec = interval;
+
+    if (setitimer(ITIMER_VIRTUAL, &timer, NULL) == -1) {
+        printf("wsl sucks\n");
+    }
 }
 
 /*
@@ -100,6 +86,9 @@ void preempt_stop(void) {
     if (use_preempt == false) {
         return;
     }
-	/* TODO Phase 4 */
-}
 
+    // Revert signal handler to default signal
+    sa.sa_handler = SIG_DFL;
+    sigaction(SIGVTALRM, &sa, NULL);
+    // Revert timer to previous config
+}
