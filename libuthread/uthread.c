@@ -102,9 +102,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
         // Swap to the next context
         preempt_start(preempt);
         uthread_ctx_switch(&(idle_ctx), &(current_thread->ctx));
+        preempt_stop();
     }
 
-    preempt_disable();
     queue_destroy(blocked_queue);
     queue_destroy(ready_queue);
     return 0;

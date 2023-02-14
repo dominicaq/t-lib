@@ -13,21 +13,23 @@
 
 int forever_loop = 1;
 
-static void thread2(void *arg) {
+void thread2(void *arg) {
     (void)arg;
 
     forever_loop = 0;
-    printf("thread2 ended the loop\n");
+    printf("thread2 ended loop\n");
+    uthread_yield();
 }
 
-static void thread1(void *arg) {
+void thread1(void *arg) {
     (void)arg;
 
     printf("thread1 entering loop\n");
     uthread_create(thread2, NULL);
     // Stuck here until preempt interrupts loop
-    while(forever_loop == 1) { }
-    printf("thread1 exited loop\n");
+    while(forever_loop == 1) { printf("stuck\n"); }
+    printf("thread1 exited\n");
+    uthread_yield();
 }
 
 int main(void) {
