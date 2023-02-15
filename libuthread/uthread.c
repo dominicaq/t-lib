@@ -72,6 +72,17 @@ int uthread_create(uthread_func_t func, void *arg) {
     return 0;
 }
 
+void uthread_free_queue(queue_t target_queue) {
+    while (queue_length(target_queue) > 0) {
+        uthread_tcb* target_thread;
+        queue_dequeue(target_queue, (void**)&target_thread);
+        if (target_thread != NULL) {
+            uthread_ctx_destroy_stack(target_thread->stack_head);
+            free(target_thread);
+        }
+    }
+}
+
 int uthread_run(bool preempt, uthread_func_t func, void *arg) {
     // Init scheduler
     ready_queue   = queue_create();
@@ -101,14 +112,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
         preempt_start(preempt);
         uthread_yield();
         preempt_stop();
-    }
-
-    // Free zombies
-    while (queue_length(zombie_queue) != 0) {
-        uthread_tcb* zombie_thread;
-        queue_dequeue(zombie_queue, (void**)&zombie_thread);
-        uthread_ctx_destroy_stack(zombie_thread->stack_head);
-        free(zombie_thread);
+        
+        // Free zombies in idle loop 
+        uthread_free_queue(zombie_queue);        
     }
 
     // Free current thread
@@ -116,8 +122,8 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
     free(current_thread);
 
     // Destroy queues
-    queue_destroy(zombie_queue);
     queue_destroy(blocked_queue);
+    queue_destroy(zombie_queue);
     queue_destroy(ready_queue);
     return 0;
 }
