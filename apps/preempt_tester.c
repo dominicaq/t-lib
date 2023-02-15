@@ -17,8 +17,8 @@ void thread2(void *arg) {
     (void)arg;
 
     forever_loop = 0;
-    printf("thread2 ended loop\n");
-    uthread_yield();
+    printf("thread2 entered, exiting loop\n");
+    exit(0);
 }
 
 void thread1(void *arg) {
@@ -27,9 +27,7 @@ void thread1(void *arg) {
     printf("thread1 entering loop\n");
     uthread_create(thread2, NULL);
     // Stuck here until preempt interrupts loop
-    while(forever_loop == 1) { printf("stuck\n"); }
-    printf("thread1 exited\n");
-    uthread_yield();
+    while(forever_loop == 1) { }
 }
 
 int main(void) {

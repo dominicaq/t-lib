@@ -112,9 +112,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
         preempt_start(preempt);
         uthread_yield();
         preempt_stop();
-        
+
         // Free zombies in idle loop 
-        uthread_free_queue(zombie_queue);        
+        uthread_free_queue(zombie_queue);
     }
 
     // Free current thread
