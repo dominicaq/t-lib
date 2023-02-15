@@ -16,6 +16,7 @@
 #define HZ 100
 
 struct itimerval timer;
+struct itimerval init_timer;
 struct sigaction sa;
 sigset_t ss;
 
@@ -64,17 +65,22 @@ void preempt_start(bool preempt) {
     sigemptyset(&sa.sa_mask);
     sigaction(SIGVTALRM, &sa, NULL);
 
-    // Sig set
+    // Sig set (For signal blocking)
     sigemptyset(&ss);
     sigaddset(&ss, SIGVTALRM);
 
     // Timer lifetime
+    int frequency = HZ * 10; // HZ to milliseconds
     timer.it_value.tv_sec = 0;
-    timer.it_value.tv_usec = HZ;
+    timer.it_value.tv_usec = frequency;
     // Timer interval
     timer.it_interval.tv_sec = 0;
-    timer.it_interval.tv_usec = HZ;
+    timer.it_interval.tv_usec = frequency;
 
+    // Get initial timer settings
+    getitimer(ITIMER_VIRTUAL, &init_timer);
+
+    // Set a new timer
     if (setitimer(ITIMER_VIRTUAL, &timer, NULL) == -1) {
         // ERROR: Failed to initialize timer
         return;
@@ -90,10 +96,10 @@ void preempt_start(bool preempt) {
  * virtual alarm signals.
  */
 void preempt_stop(void) {
+    preempt_disable();
     // Revert signal handler to default signal
     sa.sa_handler = SIG_DFL;
     sigaction(SIGVTALRM, &sa, NULL);
     // Revert timer to previous config
-
-    preempt_disable();
+    setitimer(ITIMER_VIRTUAL, &init_timer, NULL);
 }
