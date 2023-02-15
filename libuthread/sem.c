@@ -79,6 +79,7 @@ int sem_down(sem_t sem) {
         return -1;
     }
 
+    preempt_disable();
     while (sem->count == 0) {
         struct uthread_tcb *current_thread = uthread_current();
         queue_enqueue(sem->waiting_queue, current_thread);
@@ -86,6 +87,7 @@ int sem_down(sem_t sem) {
     }
 
     --(sem->count);
+    preempt_enable();
     return 0;
 }
 
@@ -108,6 +110,7 @@ int sem_up(sem_t sem) {
         return -1;
     }
 
+    preempt_disable();
     ++(sem->count);
 
     // Wake up first in line if any
@@ -118,5 +121,6 @@ int sem_up(sem_t sem) {
         uthread_unblock(unblocked_thread);
     }
 
+    preempt_enable();
     return 0;
 }
