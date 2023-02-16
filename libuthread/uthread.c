@@ -129,7 +129,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 }
 
 void uthread_block(void) {
-    // Block the current thread and swap tp idle ctx
+    // Block the current thread and yield to next
     queue_enqueue(blocked_queue, current_thread);
     uthread_yield();
 }

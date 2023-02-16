@@ -21,10 +21,6 @@ struct sigaction sa;
 sigset_t ss;
 
 void preempt_handler(int signum) {
-    if (signum != SIGVTALRM) {
-        return;
-    }
-
     uthread_yield();
 }
 
