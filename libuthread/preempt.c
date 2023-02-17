@@ -14,6 +14,7 @@
  * 100Hz is 100 times per second
  */
 #define HZ 100
+#define ONE_SECOND_MICRO_SECONDS 1000000
 
 struct itimerval timer;
 struct itimerval prev_timer;
@@ -21,7 +22,7 @@ struct sigaction sa;
 sigset_t ss;
 
 // Signal handler for timer
-void preempt_handler(int signum) {
+void preempt_handler() {
     uthread_yield();
 }
 
@@ -61,7 +62,7 @@ void preempt_start(bool preempt) {
     sigaddset(&ss, SIGVTALRM);
 
     // Timer lifetime
-    int frequency = HZ * 10; // HZ to milliseconds
+    int frequency = ONE_SECOND_MICRO_SECONDS / HZ; // HZ to milliseconds
     timer.it_value.tv_sec = 0;
     timer.it_value.tv_usec = frequency;
     // Timer interval
@@ -76,8 +77,6 @@ void preempt_start(bool preempt) {
         // ERROR: Failed to initialize timer
         return;
     }
-
-    preempt_enable();
 }
 
 /*
@@ -87,7 +86,6 @@ void preempt_start(bool preempt) {
  * virtual alarm signals.
  */
 void preempt_stop(void) {
-    preempt_disable();
     // Revert signal handler to default signal
     sa.sa_handler = SIG_DFL;
     sigaction(SIGVTALRM, &sa, NULL);

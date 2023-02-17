@@ -100,8 +100,11 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 
     // Set idle thread as initial current thread
     queue_dequeue(ready_queue, (void**)&current_thread);
+
+    // Preemption init
     preempt_start(preempt);
-    
+    preempt_enable();
+
     // Idle loop
     while (1) {
         // Exit the idle loop when ready queue is empty
@@ -111,15 +114,16 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
         }
         
         // Swap to the next thread
-        preempt_enable();
-        uthread_yield();
         preempt_disable();
+        uthread_yield(); // Critical Section
+        preempt_enable();
 
         // Free zombies in idle loop 
         uthread_free_queue(zombie_queue);
     }
 
     // Stop preemption
+    preempt_disable();
     preempt_stop();
 
     // Free current thread
