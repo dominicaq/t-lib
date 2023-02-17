@@ -62,7 +62,8 @@ int uthread_create(uthread_func_t func, void *arg) {
         return -1;
     }
 
-    int retval = uthread_ctx_init(&(new_thread->ctx), new_thread->stack_head, func, arg);
+    int retval = uthread_ctx_init(&(new_thread->ctx), new_thread->stack_head, 
+        func, arg);
     if (retval <= -1) {
         // ERROR: Init context failed
         return -1;
@@ -99,7 +100,8 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 
     // Set idle thread as initial current thread
     queue_dequeue(ready_queue, (void**)&current_thread);
-
+    preempt_start(preempt);
+    
     // Idle loop
     while (1) {
         // Exit the idle loop when ready queue is empty
@@ -109,13 +111,16 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
         }
         
         // Swap to the next thread
-        preempt_start(preempt);
+        preempt_enable();
         uthread_yield();
-        preempt_stop();
+        preempt_disable();
 
         // Free zombies in idle loop 
         uthread_free_queue(zombie_queue);
     }
+
+    // Stop preemption
+    preempt_stop();
 
     // Free current thread
     uthread_ctx_destroy_stack(current_thread->stack_head);

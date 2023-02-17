@@ -16,25 +16,20 @@
 #define HZ 100
 
 struct itimerval timer;
-struct itimerval init_timer;
+struct itimerval prev_timer;
 struct sigaction sa;
 sigset_t ss;
 
+// Signal handler for timer
 void preempt_handler(int signum) {
     uthread_yield();
 }
 
-/*
- * preempt_disable - Disable preemption
- */
 void preempt_disable(void) {
     // Block timer alarm
     sigprocmask(SIG_BLOCK, &ss, NULL);
 }
 
-/*
- * preempt_enable - Enable preemption
- */
 void preempt_enable(void) {
     // Unblock timer alarm
     sigprocmask(SIG_UNBLOCK, &ss, NULL);
@@ -73,8 +68,8 @@ void preempt_start(bool preempt) {
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = frequency;
 
-    // Get initial timer settings
-    getitimer(ITIMER_VIRTUAL, &init_timer);
+    // Get previous timer settings
+    getitimer(ITIMER_VIRTUAL, &prev_timer);
 
     // Set a new timer
     if (setitimer(ITIMER_VIRTUAL, &timer, NULL) == -1) {
@@ -97,5 +92,5 @@ void preempt_stop(void) {
     sa.sa_handler = SIG_DFL;
     sigaction(SIGVTALRM, &sa, NULL);
     // Revert timer to previous config
-    setitimer(ITIMER_VIRTUAL, &init_timer, NULL);
+    setitimer(ITIMER_VIRTUAL, &prev_timer, NULL);
 }
