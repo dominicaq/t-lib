@@ -78,30 +78,30 @@ void test_enqueue(void) {
 	queue_t q;
 
 	// Enqueue into uninitalized queue
-	TEST_ASSERT(q, queue_enqueue(q, &data) == -1);
+	TEST_ASSERT(queue_enqueue(q, &data) == -1);
 
 	// Enqueue with null data
-	TEST_ASSERT(q, queue_enqueue(q, NULL) == -1);
+	TEST_ASSERT(queue_enqueue(q, NULL) == -1);
 
 	// Enqueue normally
 	q = queue_create();
-	queue_enqueue(q, &data);
-	TEST_ASSERT(q, queue_enqueue(q, NULL) == 0);
+	TEST_ASSERT(queue_enqueue(q, &data) == 0);
 }
 
 /* Test all edge cases of dequeue */
 void test_dequeue(void) {
 	int data = 3, *ptr;
+	queue_t q;
 
 	// Dequeue from uninitalized queue
-	TEST_ASSERT(q, queue_dequeue(q, (void**)&ptr) == -1);
-	queue_t q = queue_create();
+	TEST_ASSERT(queue_dequeue(q, (void**)&ptr) == -1);
+	q = queue_create();
 	
 	// Dequeue with no target
-	TEST_ASSERT(q, queue_dequeue(q, NULL) == -1);
+	TEST_ASSERT(queue_dequeue(q, NULL) == -1);
 
 	// Dequeue from an empty queue
-	TEST_ASSERT(q, queue_dequeue(q, NULL) == -1);
+	TEST_ASSERT(queue_dequeue(q, NULL) == -1);
 
 	// Dequeue an item
 	queue_enqueue(q, &data);
