@@ -86,6 +86,9 @@ void test_enqueue(void) {
 	// Enqueue normally
 	q = queue_create();
 	TEST_ASSERT(queue_enqueue(q, &data) == 0);
+
+	// Free test
+	free_queue(q);
 }
 
 /* Test all edge cases of dequeue */
@@ -107,6 +110,9 @@ void test_dequeue(void) {
 	queue_enqueue(q, &data);
 	queue_dequeue(q, (void**)&ptr);
 	TEST_ASSERT(ptr == &data);
+
+	// Free test
+	free_queue(q);
 }
 
 /* Queue length */
@@ -131,6 +137,8 @@ void test_len(void) {
 	}
 
 	TEST_ASSERT(queue_length(q) == expected_len);
+
+	// Free test
 	free_queue(q);
 }
 
@@ -177,6 +185,7 @@ void test_enqueue_dequeue_order(void) {
 		TEST_ASSERT(data[i] == *(int*)ret);
 	}
 
+	// Free test
 	free_queue(q);
 }
 
