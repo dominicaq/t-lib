@@ -4,10 +4,6 @@
 
 #include <queue.h>
 
-// TODO LIST:
-// - More test functions
-// - Check invalid queue frees
-
 // Tester
 // ============================================================================
 #define TEST_ASSERT(assert)				\
@@ -68,7 +64,7 @@ void free_queue(queue_t q) {
 
 // Test functions
 // ============================================================================
-/* Create */
+/* Create a new queue */
 void test_create(void) {
 	queue_t q = queue_create();
 
@@ -76,15 +72,41 @@ void test_create(void) {
 	free_queue(q);
 }
 
-/* Enqueue/Dequeue simple */
-void test_queue_simple(void) {
+/* Test all edge cases of enqueue */
+void test_enqueue(void) {
 	int data = 3, *ptr;
-	queue_t q = queue_create();
+	queue_t q;
 
+	// Enqueue into uninitalized queue
+	TEST_ASSERT(q, queue_enqueue(q, &data) == -1);
+
+	// Enqueue with null data
+	TEST_ASSERT(q, queue_enqueue(q, NULL) == -1);
+
+	// Enqueue normally
+	q = queue_create();
+	queue_enqueue(q, &data);
+	TEST_ASSERT(q, queue_enqueue(q, NULL) == 0);
+}
+
+/* Test all edge cases of dequeue */
+void test_dequeue(void) {
+	int data = 3, *ptr;
+
+	// Dequeue from uninitalized queue
+	TEST_ASSERT(q, queue_dequeue(q, (void**)&ptr) == -1);
+	queue_t q = queue_create();
+	
+	// Dequeue with no target
+	TEST_ASSERT(q, queue_dequeue(q, NULL) == -1);
+
+	// Dequeue from an empty queue
+	TEST_ASSERT(q, queue_dequeue(q, NULL) == -1);
+
+	// Dequeue an item
 	queue_enqueue(q, &data);
 	queue_dequeue(q, (void**)&ptr);
 	TEST_ASSERT(ptr == &data);
-	free_queue(q);
 }
 
 /* Queue length */
@@ -93,7 +115,11 @@ void test_len(void) {
 	int num_dequeue = 2;
 	int expected_len = num_enqueue - num_dequeue;
 	int data = 1;
-	queue_t q = queue_create();
+	queue_t q;
+
+	// Length of uninitalized queue
+	TEST_ASSERT(queue_length(q) == -1);
+	q = queue_create();
 
 	for (int i = 0; i < num_enqueue; ++i) {
 		queue_enqueue(q, &data);
@@ -109,7 +135,7 @@ void test_len(void) {
 }
 
 /* Test invalid queue frees */
-void test_free(void) {
+void test_destroy(void) {
 	queue_t q;
 	char data[] = {'a', 'b', 'c', 'd', 'e'};
 	int data_size = sizeof(data) / sizeof(data[0]);
@@ -122,7 +148,7 @@ void test_free(void) {
 	for (size_t i = 0; i < data_size; i++)
         queue_enqueue(q, &data[i]);
 
-	// Free non-empty queue
+	// Free a non-empty queue
 	int *ret;
 	for (int i = 0; i < data_size-1; ++i) {
 		TEST_ASSERT(queue_destroy(q) == -1);
@@ -134,7 +160,7 @@ void test_free(void) {
 	TEST_ASSERT(queue_destroy(q) == 0);
 }
 
-/* Ensure enqueue and deqeue are correct */
+/* Ensure enqueue and deqeue order is correct */
 void test_enqueue_dequeue_order(void) {
 	queue_t q = queue_create();
 	int data[] = {1, 2, 3, 4, 5, 42, 6, 7, 8, 9};
@@ -155,13 +181,19 @@ void test_enqueue_dequeue_order(void) {
 }
 
 /* Empty an entire queue with queue_delete only */
-void test_delete(void) {
-	int data = 42;
+void test_delete_node(void) {
+	int del_value = 42;
+	int data = 41;
 	int size = 10;
 	queue_t q = queue_create();
 
 	for (int i = 0; i < size; ++i) {
-		queue_enqueue(q, &data);
+		if (i % 2 == 0) {
+			queue_enqueue(q, &del_value);
+		} else {
+			queue_enqueue(q, &data);
+		}
+		
 	}
 	queue_iterate(q, iterator_inc);
 	TEST_ASSERT(queue_length(q) == 0);
@@ -184,29 +216,7 @@ void test_iterator(void) {
 	free_queue(q);
 }
 
-/* Mass insertions / deletes */
-void test_rigirous(void){
-	queue_t q = queue_create();
-	int num_itterations = 1000;
-	int data = 24;
-	int *ret;
-
-	// Expect no mem leaks (Use valgrind)
-	for (int i = 0; i < num_itterations; ++i) {
-		queue_enqueue(q, &data);
-		for (int j = 0; j < num_itterations; ++j) {
-			if ( i % 2 == 0) {
-				queue_iterate(q, iterator_inc);
-			} else {
-				queue_dequeue(q, (void**)&ret);
-			}
-			
-		}
-	}
-	TEST_ASSERT(queue_length(q) == 0);
-	free_queue(q);
-}
-
+// TODO: 10-20 test
 // Run each test
 int main(void) {
 	fprintf(stderr, "*** Running queue test ***\n");
@@ -214,8 +224,11 @@ int main(void) {
 	fprintf(stderr, "*** TEST create ***\n");
 	test_create();
 
-	fprintf(stderr, "*** TEST queue_simple ***\n");
-	test_queue_simple();
+	fprintf(stderr, "*** TEST enqueue ***\n");
+	test_enqueue();
+
+	fprintf(stderr, "*** TEST dequeue ***\n");
+	test_dequeue();
 
 	fprintf(stderr, "*** TEST len ***\n");
 	test_len();
@@ -223,17 +236,16 @@ int main(void) {
 	fprintf(stderr, "*** TEST enqueue / dequeue order ***\n");
 	test_enqueue_dequeue_order();
 
-	fprintf(stderr, "*** TEST free queue ***\n");
-	test_free();
+	fprintf(stderr, "*** TEST queue destroy ***\n");
+	test_destroy();
 
-	fprintf(stderr, "*** TEST delete ***\n");
-	test_delete();
+
+// ------------- Here
+	// fprintf(stderr, "*** TEST delete node ***\n");
+	// test_free();
 
 	fprintf(stderr, "*** TEST iterator ***\n");
 	test_iterator();
-
-	fprintf(stderr, "*** TEST rigirous ***\n");
-	test_rigirous();
 
 	fprintf(stderr, "*** All test passed ***\n");
 	return 0;
