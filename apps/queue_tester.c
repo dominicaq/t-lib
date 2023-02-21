@@ -229,7 +229,7 @@ void test_delete_node(void) {
 	free_queue(q);
 }
 
-/* Test callbacks (Professors example) */
+/* Test callbacks */
 void test_iterator(void) {
 	queue_t q_blank;
 
@@ -266,7 +266,6 @@ void test_iterator(void) {
 	free_queue(q_blank);
 }
 
-// TODO: 10-20 test
 // Run each test
 int main(void) {
 	fprintf(stderr, "*** Running queue test ***\n");

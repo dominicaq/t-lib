@@ -28,6 +28,7 @@ struct uthread_tcb *uthread_current(void) {
     return current_thread;
 }
 
+// Swap threads from current thread to new thread
 void uthread_swap_threads(void) {
     if (queue_length(ready_queue) == 0) {
         return;
@@ -73,6 +74,7 @@ int uthread_create(uthread_func_t func, void *arg) {
     return 0;
 }
 
+// Empty out a queue and free tcb mallocs
 void uthread_free_queue(queue_t target_queue) {
     while (queue_length(target_queue) > 0) {
         uthread_tcb* target_thread;
@@ -137,12 +139,14 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
     return 0;
 }
 
+// Block the current thread
 void uthread_block(void) {
     // Block the current thread and yield to next
     queue_enqueue(blocked_queue, current_thread);
     uthread_yield();
 }
 
+// Unblock a target thread
 void uthread_unblock(struct uthread_tcb *uthread) {
     // Delete from blocked queue and add to ready queue if it existed
     int retval = queue_delete(blocked_queue, uthread);

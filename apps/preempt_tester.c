@@ -30,7 +30,16 @@ void thread1(void *arg) {
     while(forever_loop == 1) { }
 }
 
-int main(void) {
-    uthread_run(true, thread1, NULL);
+int main(int argc, char **argv) {
+    bool use_preempt = false;
+
+    // Turn off preempt if user specifes
+    if (argc > 1) {
+        if (atoi(argv[1]) > 0) {
+            use_preempt = true;
+        }
+    }
+
+    uthread_run(use_preempt, thread1, NULL);
     return 0;
 }
