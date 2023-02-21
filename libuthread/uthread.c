@@ -34,9 +34,15 @@ void uthread_swap_threads(void) {
         return;
     }
 
+    // Disable preempt, entering critical section
+    preempt_disable();
+
     uthread_tcb *prev_thread = current_thread;
     queue_dequeue(ready_queue, (void**)&current_thread);
     uthread_ctx_switch(&(prev_thread->ctx), &(current_thread->ctx));
+
+    // Reenable preempt, exiting critical section
+    preempt_enable();
 }
 
 void uthread_yield(void) {
@@ -116,9 +122,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
         }
         
         // Swap to the next thread
-        preempt_disable();
-        uthread_yield(); // Critical Section
-        preempt_enable();
+        uthread_yield();
 
         // Free zombies in idle loop 
         uthread_free_queue(zombie_queue);
