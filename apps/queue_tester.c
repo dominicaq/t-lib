@@ -19,21 +19,20 @@ do {									\
 
 // Callbacks / Misc functions
 // ============================================================================
-/* Delete a node that has 42 (Professors example) */
-static void iterator_inc(queue_t q, void *data) {
-    int *a = (int*)data;
-
-    if (*a == 42)
-		queue_delete(q, data);
-    else
-        *a += 1;
+/* Print int elements and increment them by 10 */
+static void print_int_increment(queue_t q, void *data) {
+	int *a = (int*)data;
+	if (a != NULL) {
+		*a += 10;
+		printf("[%d] ", *(int*)a);
+	}
 }
 
 /* Print int element of queue */
 static void print_int(queue_t q, void *data) {
 	int *a = (int*)data;
 	if (a != NULL) {
-		printf(" [%d]", *(int*)a);
+		printf("[%d] ", *(int*)a);
 	}
 }
 
@@ -41,7 +40,7 @@ static void print_int(queue_t q, void *data) {
 static void print_char(queue_t q, void *data) {
 	char *a = (char*)data;
 	if (a != NULL) {
-		printf(" [%c]", *(char*)a);
+		printf("[%c] ", *(char*)a);
 	}
 }
 
@@ -54,10 +53,14 @@ void print_queue(queue_t q) {
 
 /* Free entire queue */
 void free_queue(queue_t q) {
-	int *ptr;
+	if (q == NULL) {
+		return;
+	}
+
+	int *data;
 	int queue_len = queue_length(q);
 	for (int i = 0; i < queue_len; ++i) {
-		queue_dequeue(q, (void**)&ptr);
+		queue_dequeue(q, (void**)&data);
 	}
 	queue_destroy(q);
 }
@@ -142,6 +145,27 @@ void test_len(void) {
 	free_queue(q);
 }
 
+/* Ensure enqueue and deqeue order is correct */
+void test_enqueue_dequeue_order(void) {
+	queue_t q = queue_create();
+	int data[] = {1, 2, 3, 4, 5, 42, 6, 7, 8, 9};
+	int data_size = sizeof(data) / sizeof(data[0]);
+
+    /* Enqueue items */
+    for (size_t i = 0; i < data_size; i++)
+        queue_enqueue(q, &data[i]);
+
+	/* Dequeue and compare ordering */
+	for (int i = 0; i < data_size; ++i) {
+		int *ret;
+		queue_dequeue(q, (void**)&ret);
+		TEST_ASSERT(data[i] == *(int*)ret);
+	}
+
+	// Free test
+	free_queue(q);
+}
+
 /* Test invalid queue frees */
 void test_destroy(void) {
 	queue_t q;
@@ -168,61 +192,78 @@ void test_destroy(void) {
 	TEST_ASSERT(queue_destroy(q) == 0);
 }
 
-/* Ensure enqueue and deqeue order is correct */
-void test_enqueue_dequeue_order(void) {
-	queue_t q = queue_create();
-	int data[] = {1, 2, 3, 4, 5, 42, 6, 7, 8, 9};
-	int data_size = sizeof(data) / sizeof(data[0]);
-
-    /* Enqueue items */
-    for (size_t i = 0; i < data_size; i++)
-        queue_enqueue(q, &data[i]);
-
-	/* Dequeue and compare ordering */
-	for (int i = 0; i < data_size; ++i) {
-		int *ret;
-		queue_dequeue(q, (void**)&ret);
-		TEST_ASSERT(data[i] == *(int*)ret);
-	}
-
-	// Free test
-	free_queue(q);
-}
-
 /* Empty an entire queue with queue_delete only */
 void test_delete_node(void) {
-	int del_value = 42;
-	int data = 41;
-	int size = 10;
-	queue_t q = queue_create();
+	int del_value1 = 2;
+	int del_value2 = 1;
+	int size = 20;
+	queue_t q;
+
+	// Delete a item from a unintalized queue
+	TEST_ASSERT(queue_delete(q, (void**)&del_value1) == -1);
+
+	q = queue_create();
+
+	// Delete a NULL item from a initalized queue
+	TEST_ASSERT(queue_delete(q, NULL) == -1);
 
 	for (int i = 0; i < size; ++i) {
 		if (i % 2 == 0) {
-			queue_enqueue(q, &del_value);
+			queue_enqueue(q, &del_value1);
 		} else {
-			queue_enqueue(q, &data);
-		}
-		
+			queue_enqueue(q, &del_value2);
+		}	
 	}
-	queue_iterate(q, iterator_inc);
+	
+	// Delete even nodes
+	for (int i = 0; i < size; ++i) {
+		queue_delete(q, (void**)&del_value1);
+	}
+
+	// Delete the rest
+	for (int i = 0; i < size; ++i) {
+		queue_delete(q, (void**)&del_value2);
+	}
+
 	TEST_ASSERT(queue_length(q) == 0);
 	free_queue(q);
 }
 
 /* Test callbacks (Professors example) */
 void test_iterator(void) {
-    queue_t q = queue_create();
-    int data[] = {1, 2, 3, 4, 5, 42, 6, 7, 8, 9};
+	queue_t q_blank;
 
-    /* Initialize the queue and enqueue items */
-    for (size_t i = 0; i < sizeof(data) / sizeof(data[0]); i++)
-        queue_enqueue(q, &data[i]);
+	// Itterate over unintalized queue
+	TEST_ASSERT(queue_iterate(q_blank, print_char) == -1);
+	q_blank = queue_create();
 
-	/* Increment every item of the queue, delete item '42' */
-    queue_iterate(q, iterator_inc);
-    TEST_ASSERT(data[0] == 2);
-    TEST_ASSERT(queue_length(q) == 9);
-	free_queue(q);
+	// Itterate over queue with a NULL func
+	TEST_ASSERT(queue_iterate(q_blank, NULL) == -1);
+
+    queue_t q_int = queue_create();
+    queue_t q_char = queue_create();
+    int data_int[] = {1, 2, 3, 4, 5, 2, 6, 7, 8, 9};
+    int data_char[] = {'a', 'b', 'c', 'd', 'e', 'f'};
+
+    /* Enqueue int items */
+    for (size_t i = 0; i < sizeof(data_int) / sizeof(data_int[0]); i++)
+        queue_enqueue(q_int, &data_int[i]);
+
+    /* Enqueue char items */
+    for (size_t i = 0; i < sizeof(data_char) / sizeof(data_char[0]); i++)
+        queue_enqueue(q_char, &data_char[i]);
+
+	/* Print entire queue with iterate */
+	queue_iterate(q_char, print_char);
+    printf("\n");
+    queue_iterate(q_int, print_int_increment);
+    printf("\n");
+
+    TEST_ASSERT(data_int[0] == 11);
+    TEST_ASSERT(data_char[3] == 'd');
+	free_queue(q_int);
+	free_queue(q_char);
+	free_queue(q_blank);
 }
 
 // TODO: 10-20 test
@@ -248,10 +289,8 @@ int main(void) {
 	fprintf(stderr, "*** TEST queue destroy ***\n");
 	test_destroy();
 
-
-// ------------- Here
-	// fprintf(stderr, "*** TEST delete node ***\n");
-	// test_free();
+	fprintf(stderr, "*** TEST queue delete node ***\n");
+	test_delete_node();
 
 	fprintf(stderr, "*** TEST iterator ***\n");
 	test_iterator();
