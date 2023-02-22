@@ -151,16 +151,26 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 
 // Block the current thread
 void uthread_block(void) {
+
+    preempt_disable();
+
     // Block the current thread and yield to next
     queue_enqueue(blocked_queue, current_thread);
     uthread_yield();
+
+    preempt_enable();
 }
 
 // Unblock a target thread
 void uthread_unblock(struct uthread_tcb *uthread) {
+
+    preempt_disable();
+
     // Delete from blocked queue and add to ready queue if it existed
     int retval = queue_delete(blocked_queue, uthread);
     if (retval > 0) {
         queue_enqueue(ready_queue, uthread);
     }
+
+    preempt_enable();
 }
