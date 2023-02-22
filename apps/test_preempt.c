@@ -13,12 +13,26 @@
 
 int forever_loop = 1;
 
-void thread2(void *arg) {
+void thread4(void *arg) {
     (void)arg;
 
     forever_loop = 0;
-    printf("thread2 entered, exiting loop\n");
-    exit(0);
+    printf("thread4, exiting loop\n");
+    // exit(0)
+}
+
+void thread3(void *arg) {
+    (void)arg;
+
+    uthread_create(thread4, NULL);
+    printf("thread3\n");
+}
+
+void thread2(void *arg) {
+    (void)arg;
+
+    uthread_create(thread3, NULL);
+    printf("thread2\n");
 }
 
 void thread1(void *arg) {
