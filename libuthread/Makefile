@@ -5,7 +5,7 @@ objs := $(patsubst %.c,%.o,$(wildcard *.c))
 # GCC options
 CC     := gcc
 CFLAGS := -MMD -Wall
-CFLAGS += -Wextra #-Werror
+CFLAGS += -Wextra -Werror
 
 # Verbose mode
 ifneq ($(V),1)
