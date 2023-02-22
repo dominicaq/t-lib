@@ -11,13 +11,13 @@
 
 #include <uthread.h>
 
-int forever_loop = 1;
+int forever_loops = 1;
 
 void thread4(void *arg) {
     (void)arg;
 
-    forever_loop = 0;
-    printf("thread4, exiting loop\n");
+    forever_loops = 0;
+    printf("thread4, exiting loops\n");
     // exit(0)
 }
 
@@ -25,23 +25,25 @@ void thread3(void *arg) {
     (void)arg;
 
     uthread_create(thread4, NULL);
-    printf("thread3\n");
+    printf("thread3 loop\n");
+    while(forever_loops == 1) { }
 }
 
 void thread2(void *arg) {
     (void)arg;
 
     uthread_create(thread3, NULL);
-    printf("thread2\n");
+    printf("thread2 loop\n");
+    while(forever_loops == 1) { }
 }
 
 void thread1(void *arg) {
     (void)arg;
 
-    printf("thread1 entering loop\n");
+    printf("thread1 entering loops\n");
     uthread_create(thread2, NULL);
     // Stuck here until preempt interrupts loop
-    while(forever_loop == 1) { }
+    while(forever_loops == 1) { }
 }
 
 int main(int argc, char **argv) {
