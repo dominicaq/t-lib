@@ -133,6 +133,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 
     // Idle loop
     while (1) {
+        // Free zombies if any exist 
+        uthread_free_queue(zombie_queue);
+
         // Exit the idle loop when ready queue is empty
         int num_threads = queue_length(ready_queue);
         if (num_threads == 0) {
@@ -141,9 +144,6 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
         
         // Swap to the next thread
         uthread_yield();
-
-        // Free zombies in idle loop 
-        uthread_free_queue(zombie_queue);
     }
 
     // Stop preemption
