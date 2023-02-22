@@ -145,8 +145,56 @@ This leads to all 4 threads completing and the program ends, showing our
 preemption works in at least this simple case.
 
 ## Semaphore Library
+The semaphore library is provided to enable atomic control over shared resources
+across threads. Semaphores can be created and can be interacted with using the
+`sem_down` and `sem_up` functions. `sem_down` allows the thread to attempt to
+acquire a resource from the semaphore, while `sem_up` releases a resource. If
+`sem_down` fails, in that the semaphore has no more resources, then the calling
+thread is blocked (and not enqueued back to the ready queue) and control is
+switched to the next ready thread.
 
+### Semaphore Struct
+The struct `sem` contains all for a single semaphore. This includes an int
+`count` which represents the number of resources currently accessible in the
+semaphore, and the queue `waiting_queue` which is used to unblock singular
+threads upon calls to `sem_up` on this semaphore.
 
 ### Blocking Threads
+When a thread calls `sem_down` on a semaphore with `count==0`, the semaphore
+will block the thread to protect the integrity of the program. This is done by
+enqueueing a pointer to the running thread into the semaphore's `waiting_queue`
+and then calling `uthread_block` which moves the thread to blocked queue rather
+than the ready queue before switching contexts.
 
 ### Unblocking Threads
+Upon calling `sem_up` on a semaphore, if there are any waiting threads on this
+semaphore, a single one is released by dequeuing it from the semaphore's
+`waiting_queue` and calling `uthread_unblock` with the pointer. This deletes the
+thread from the blocked queue and enqueues it onto the ready queue (it does not
+immediately transfer control to the unblocked thread).
+
+### Blocking/Unblocking Corner Case
+There is a corner case where a blocked thread is unblocked and wakes up inside
+the `sem_down` function, but before it has been given back control another
+thread has taken the only resource. To prevent this thread from running without
+properly acquiring a resource, there is a loop within `sem_down` to forces the
+thread to check whether there is an available resoruce on the semaphore before
+it is able to truly continue its execution. If the resource was taken before
+the unblocked thread got access to the process, then it is once again blocked
+in the same way as it was initially. There are no implemented safeguards to
+prevent starvation from this scenario.
+
+### Working With Preemption
+Semaphores are a utility to create atomicity between concurrent threads.
+Because of this, however, they themselves must be atomic in some of their
+actions. This is not an issue in yield scheduling since once a thread calls a
+semaphore function then all control is transferred to that semaphore function.
+However, with preemptive scheduling, semaphore operations may suddenly be
+interrupted by the timer, potentially leading to instability and incorrectness
+in the concurrency control logic.
+
+To prevent this, any logic surrounding the semaphores `count` value and
+subsequent actions reliant on the `count` are bound together atomically by
+suspending preemption through controlling the sigaction's mask. Additionally,
+any queue operations are also done atomically. By disabling preemption, we can
+return to full serial control within the semaphore's critical code segments.
