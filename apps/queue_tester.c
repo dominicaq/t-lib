@@ -58,10 +58,7 @@ void free_queue(queue_t q) {
     }
 
     int *data;
-    int queue_len = queue_length(q);
-    for (int i = 0; i < queue_len; ++i) {
-        queue_dequeue(q, (void**)&data);
-    }
+    while (!queue_dequeue(q, (void**)&data));
     queue_destroy(q);
 }
 
@@ -173,6 +170,13 @@ void test_enqueue_dequeue_order(void) {
         queue_dequeue(q, (void**)&ret);
         TEST_ASSERT(data[i] == *(int*)ret);
     }
+
+    // Enqueue some more items and check length
+    //   Tests enqueueing from a dequeue-emptied queue
+    for (size_t i = 0; i < data_size; i++) {
+        queue_enqueue(q, &data[i]);
+    }
+    TEST_ASSERT(queue_length(q) == data_size);
 
     // Free test
     free_queue(q);
