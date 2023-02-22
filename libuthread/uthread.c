@@ -168,18 +168,18 @@ void uthread_block(void) {
     queue_enqueue(blocked_queue, current_thread);
     preempt_enable();
 
-    // Yield blocked thread
-    uthread_yield();
+    // Swap to next available thread
+    uthread_swap_threads();
 }
 
-// Unblock a target thread
+// Unblock a target thread (atomic)
 void uthread_unblock(struct uthread_tcb *uthread) {
     // Disable preempt, entering critical section
     preempt_disable();
 
     // Delete from blocked queue and add to ready queue if it existed
     int retval = queue_delete(blocked_queue, uthread);
-    if (retval > 0) {
+    if (retval == 0) {
         queue_enqueue(ready_queue, uthread);
     }
 

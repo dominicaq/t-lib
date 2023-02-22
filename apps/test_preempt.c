@@ -1,8 +1,8 @@
 /*
  * Preemption simple test
  *
- * Test preempted interupts by having one thread hog resources until the other
- * thread breaks its loop
+ * Test preempted interupts by having mutliple threads hog resources until the
+ * the 4th thread breaks their loops
  *
  */
 
@@ -16,9 +16,9 @@ volatile int forever_loops = 1;
 void thread4(void *arg) {
     (void)arg;
 
+    // Break all the loops in the other threads
     forever_loops = 0;
     printf("thread4, exiting loops\n");
-    // exit(0)
 }
 
 void thread3(void *arg) {
@@ -26,6 +26,7 @@ void thread3(void *arg) {
 
     uthread_create(thread4, NULL);
     printf("thread3 loop\n");
+    // Stuck here until preempt interrupts loop
     while(forever_loops == 1) { }
 }
 
@@ -34,6 +35,7 @@ void thread2(void *arg) {
 
     uthread_create(thread3, NULL);
     printf("thread2 loop\n");
+    // Stuck here until preempt interrupts loop
     while(forever_loops == 1) { }
 }
 
