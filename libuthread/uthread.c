@@ -34,25 +34,31 @@ void uthread_swap_threads(void) {
         return;
     }
 
-    // Disable preempt, entering critical section
-    preempt_disable();
-
     uthread_tcb *prev_thread = current_thread;
     queue_dequeue(ready_queue, (void**)&current_thread);
     uthread_ctx_switch(&(prev_thread->ctx), &(current_thread->ctx));
+}
+
+void uthread_yield(void) {
+    // Disable preempt, entering critical section
+    preempt_disable();
+    
+    queue_enqueue(ready_queue, current_thread);
+    uthread_swap_threads();
 
     // Reenable preempt, exiting critical section
     preempt_enable();
 }
 
-void uthread_yield(void) {
-    queue_enqueue(ready_queue, current_thread);
-    uthread_swap_threads();
-}
-
 void uthread_exit(void) {
+    // Disable preempt, entering critical section
+    preempt_disable();
+
     queue_enqueue(zombie_queue, current_thread);
     uthread_swap_threads();
+
+    // Reenable preempt, exiting critical section
+    preempt_enable();
 }
 
 int uthread_create(uthread_func_t func, void *arg) {
