@@ -37,7 +37,8 @@ not own the data and the queue will never free any `data` pointers. This `data`
 pointer is passed back to the caller upon dequeueing this node and it can also
 be used as a key in `queue_delete` operations.
 
-The queue supports enqueuing and dequeueing, as expected, but it also supports iterating over the queue. `queue_iterate` takes a `queue` and a function of type
+The queue supports enqueuing and dequeueing, as expected, but it also supports
+iterating over the queue. `queue_iterate` takes a `queue` and a function of type
 `func(queue *q, void *data)` which will call `func` on every element of the
 queue. Because the queue itself is passed to the function, any queue function
 can be called within `func`. This includes `queue_delete`, as the iterator has
@@ -104,11 +105,10 @@ control to the caller of `uthread_run`.
 The default scheduling mechanism is to provide full scheduling control to the
 thread's passed execution functions through the `uthread_yield` function. This
 function causes the currently running thread to be returned to the ready queue
-before being switched for the next running thread.
-
-This scheduling strategy gives full control to the user, but if any thread does
-not yield, it will not give concurrent access to any other thread until it has
-finished execution or has been blocked by a semaphore.
+before being switched for the next running thread. This scheduling strategy
+gives full control to the user, but if any thread does not yield, it will not
+give concurrent access to any other thread until it has finished execution or
+has been blocked by a semaphore.
 
 ### Preemptive Scheduling
 The user can also intiate the thread library with preemptive scheduling. This
