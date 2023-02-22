@@ -21,8 +21,6 @@ struct itimerval prev_timer;
 struct sigaction sa;
 sigset_t ss;
 
-int PREEMPT_BLOCKERS = 0;
-
 // Signal handler for timer
 void preempt_handler() {
     uthread_yield();
@@ -30,17 +28,12 @@ void preempt_handler() {
 
 void preempt_disable(void) {
     // Block timer alarm
-    if (PREEMPT_BLOCKERS == 0) {
-        sigprocmask(SIG_BLOCK, &ss, NULL);
-    }
-    ++PREEMPT_BLOCKERS;
+    sigprocmask(SIG_BLOCK, &ss, NULL);
 }
 
 void preempt_enable(void) {
-    // Unblock timer alarm - assumes preemption disabled, UB otherwise
-    if (--PREEMPT_BLOCKERS == 0) {
-        sigprocmask(SIG_UNBLOCK, &ss, NULL);
-    }
+    // Unblock timer alarm
+    sigprocmask(SIG_UNBLOCK, &ss, NULL);
 }
 
 /*

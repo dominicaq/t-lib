@@ -34,31 +34,34 @@ void uthread_swap_threads(void) {
         return;
     }
 
+    // Retrieve next ready thread (atomic)
+    preempt_disable();
     uthread_tcb *prev_thread = current_thread;
     queue_dequeue(ready_queue, (void**)&current_thread);
+    preempt_enable();
+
+    // Switch context
     uthread_ctx_switch(&(prev_thread->ctx), &(current_thread->ctx));
 }
 
 void uthread_yield(void) {
-    // Disable preempt, entering critical section
+    // Enqueue current thread into ready queue (atomic)
     preempt_disable();
-    
     queue_enqueue(ready_queue, current_thread);
-    uthread_swap_threads();
-
-    // Reenable preempt, exiting critical section
     preempt_enable();
+
+    // Swap to next ready thread
+    uthread_swap_threads();
 }
 
 void uthread_exit(void) {
-    // Disable preempt, entering critical section
+    // Enqueue current thread into zombie queue (atomic)
     preempt_disable();
-
     queue_enqueue(zombie_queue, current_thread);
-    uthread_swap_threads();
-
-    // Reenable preempt, exiting critical section
     preempt_enable();
+
+    // Swap to next ready thread
+    uthread_swap_threads();
 }
 
 int uthread_create(uthread_func_t func, void *arg) {
@@ -82,7 +85,11 @@ int uthread_create(uthread_func_t func, void *arg) {
         return -1;
     }
 
+    // Enqueue current thread into ready queue (atomic)
+    preempt_disable();
     queue_enqueue(ready_queue, new_thread);
+    preempt_enable();
+
     return 0;
 }
 
@@ -123,7 +130,6 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 
     // Preemption init
     preempt_start(preempt);
-    preempt_enable();
 
     // Idle loop
     while (1) {
@@ -157,15 +163,13 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 
 // Block the current thread
 void uthread_block(void) {
-    // Disable preempt, entering critical section
+    // Enqueue current thread into blocked queue (atomic)
     preempt_disable();
-
-    // Block the current thread and yield to next
     queue_enqueue(blocked_queue, current_thread);
-    uthread_yield();
-
-    // Reenable preempt, exiting critical section
     preempt_enable();
+
+    // Yield blocked thread
+    uthread_yield();
 }
 
 // Unblock a target thread

@@ -79,14 +79,24 @@ int sem_down(sem_t sem) {
         return -1;
     }
 
+    // Atomically check sem->count
     preempt_disable();
     while (sem->count == 0) {
+        // Atomically enqueue current thread to sem's waiting queue
         struct uthread_tcb *current_thread = uthread_current();
         queue_enqueue(sem->waiting_queue, current_thread);
+
+        // Block current thread (uthread_block will re-enable preemption)
         uthread_block();
+
+        // Atomically check sem->count
+        preempt_disable();
     }
 
+    // Perform sem decrement
     --(sem->count);
+
+    // Re-enable preemption
     preempt_enable();
     return 0;
 }
@@ -110,7 +120,10 @@ int sem_up(sem_t sem) {
         return -1;
     }
 
+    // Atomically increment sem and dequeue from waiting queue
     preempt_disable();
+
+    // Perform sem increment
     ++(sem->count);
 
     // Wake up first in line if any
@@ -118,9 +131,10 @@ int sem_up(sem_t sem) {
     if (num_threads > 0) {
         struct uthread_tcb *unblocked_thread;
         queue_dequeue(sem->waiting_queue, (void**)&unblocked_thread);
+
+        // Unblock awakend thread (uthread_unblock will re-enable preemption)
         uthread_unblock(unblocked_thread);
     }
 
-    preempt_enable();
     return 0;
 }
