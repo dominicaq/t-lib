@@ -207,8 +207,8 @@ void test_destroy(void) {
 
 /* Empty an entire queue with queue_delete only */
 void test_delete_node(void) {
-    int data1=1, data2=2, data3=3;
-    int size = 20;
+    int dataHead=0, data1=1, data2=2, data3=3, dataTail=4;
+    int numData = 20;
     queue_t q = NULL;
 
     // Delete a item from a unintalized queue
@@ -219,13 +219,16 @@ void test_delete_node(void) {
     TEST_ASSERT(queue_delete(q, NULL) == -1);
 
     // Insert equal number of data1 and data2
-    for (int i = 0; i < size; ++i) {
+    //   bookended by dataHead and dataTail
+    queue_enqueue(q, &dataHead);
+    for (int i = 0; i < numData; ++i) {
         if ((i&1) == 0) {
             queue_enqueue(q, &data1);
         } else {
             queue_enqueue(q, &data2);
         }
     }
+    queue_enqueue(q, &dataTail);
 
     // Delete an item that doesn't exist
     TEST_ASSERT(queue_delete(q, (void*)&data3) == -1);
@@ -234,10 +237,22 @@ void test_delete_node(void) {
     while (!queue_delete(q, (void*)&data1));
 
     // Test for half-empty queue
-    TEST_ASSERT(queue_length(q) == size/2);
+    TEST_ASSERT(queue_length(q) == numData/2 + 2);
 
-    // Delete the rest
-    while (!queue_delete(q, (void*)&data2));
+    // Delete head and tail
+    queue_delete(q, (void*)&dataHead);
+    queue_delete(q, (void*)&dataTail);
+    TEST_ASSERT(queue_length(q) == numData/2);
+
+    // Enqueue some more nodes, to ensure stability of queue
+    for (int i = 0; i < numData; ++i) {
+        queue_enqueue(q, &data2);
+    }
+    TEST_ASSERT(queue_length(q) == numData + numData/2);
+
+    // Dequeue the rest, to ensure stability of queue
+    int *ptr;
+    while (!queue_dequeue(q, (void**)&ptr));
 
     // Test for empty queue
     TEST_ASSERT(queue_length(q) == 0);
