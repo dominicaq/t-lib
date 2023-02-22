@@ -55,11 +55,11 @@ above.
 
 ## Thread Library
 The thread library is exposed in the file `uthread.h`. From here, the initial
-thread can be ran with `uthread_run` and subsequent threads can be scheduled by
-calling `uthread_create` from the running thread function. Both `uthread_run`
-and `uthread_create` take a thread body function and a list of arguments to
-pass to the function. `uthread_run` also takes a flag to conditionally use
-preemptive scheduling.
+scheduling execution can be entered with `uthread_run` which also runs the
+initial thread. Subsequent threads can be scheduled by calling `uthread_create`
+from the running thread function. Both `uthread_run` and `uthread_create` take a
+thread body function and a list of arguments to pass to the function.
+`uthread_run` also takes a flag to conditionally use preemptive scheduling.
 
 ### Thread Struct
 The thread struct `uthread_tcb` holds the context of the thread as well as a
@@ -78,20 +78,74 @@ thread will continue to run into it yields, is blocked, is preempted, or it
 completes execution of its function and exits.
 
 If a thread is yielded or preempted, it is enqueued back onto the ready queue
-before getting its context switched away from, freezing its state.
-
-The running thread may also be blocked, where it waits until it is specifically
-unblocked with a reference to its thread struct.
+before getting its context switched away from, freezing its state. The running
+thread may also be blocked, where it waits until it is specifically
+unblocked with a reference to its thread struct. When a thread exits, it is
+added to a zombie queue where the idle thread later frees its memory.
 
 ### Context Switching
+Context switching is the act of atomically swapping register information from
+one context to another. This register information importantly includes the stack
+pointer and program counter, which is what defines the execution of a program.
+Threads in our library switch from one thread to the next upon yielding or
+being preempted. There is no kernel-like process handling the scheduling.
 
 ### Idle Thread
+The idle thread is launched by `uthread_run` and it executes a specialized
+program defined by our thread library. It is enqueued and switched to like every
+other user thread. The idle thread has two purposes. First, whenever the idle
+thread becomes the running process it first checks to see if there are any
+zombie threads, destroying them if so. Second, it checks if there are any other
+threads being run by the scheduler. If there are no other threads, the idle
+thread cleans up the scheduling structures and exits `uthread_run`, returning
+control to the caller of `uthread_run`.
 
 ### Yield Scheduling
+The default scheduling mechanism is to provide full scheduling control to the
+thread's passed execution functions through the `uthread_yield` function. This
+function causes the currently running thread to be returned to the ready queue
+before being switched for the next running thread.
 
-### Preemptive Schduling
+This scheduling strategy gives full control to the user, but if any thread does
+not yield, it will not give concurrent access to any other thread until it has
+finished execution or has been blocked by a semaphore.
+
+### Preemptive Scheduling
+The user can also intiate the thread library with preemptive scheduling. This
+forcibly yields the current thread after some amount of time passes from a
+virtual timer (that only checks process running time). This timer signal is
+internally blocked for specific critical sections that affect shared scheduling
+data. Namely, any modifications to the ready, blocked, and zombie queues are
+atomic with respect to preemption. Since `swapcontext` is a syscall, it is
+implicitly atomic as the virtual timer can not interrupt the kernel's actions.
+
+### Testing Preemptive Scheduling
+The testing program found in `test_preempt.c` is used to ensure execution of a
+resource-hogging thread will be halted by the virtual timer. In order to achieve
+this, we create a cascade of 4 threads with each thread being created by the
+previous one. The first 3 threads are stuck in loops dependent on the value of a
+global int called `INFINITE_LOOP`. This value is initialized to `1` and each of
+these first 3 threads will loop forever while this value remains `1`.
+
+Each thread prints a statement upon first entering its running function,
+signaling that the thread has been reached. Since there is no yielding,
+if preemption failed entirely then only the first thread would print before
+entering its infinite loop, never yielding the process to the other threads.
+However, we can see that each thread prints its statement as the infinite
+loops are getting interrupted by the timer signal, yielding the threads.
+
+Finally, once the 4th thread begins execution, it prints and then sets
+`INFINITE_LOOP` to 0, forcing the other threads to exit once control is returned
+to them. This works because, although the value of `INFINITE_LOOP` would often
+be cached in a register for these threads, we mark `INFINITE_LOOP` as volatile
+to prevent this caching and ensure that the threads always read the latest
+value. The 4th thread exits and this change causes a cascade down where each of
+the looping threads exit their loops and thus exit their executing fucntions.
+This leads to all 4 threads completing and the program ends, showing our
+preemption works in at least this simple case.
 
 ## Semaphore Library
+
 
 ### Blocking Threads
 

@@ -11,13 +11,13 @@
 
 #include <uthread.h>
 
-volatile int forever_loops = 1;
+volatile int INFINITE_LOOP = 1;
 
 void thread4(void *arg) {
     (void)arg;
 
     // Break all the loops in the other threads
-    forever_loops = 0;
+    INFINITE_LOOP = 0;
     printf("thread4, exiting loops\n");
 }
 
@@ -27,7 +27,7 @@ void thread3(void *arg) {
     uthread_create(thread4, NULL);
     printf("thread3 loop\n");
     // Stuck here until preempt interrupts loop
-    while(forever_loops == 1) { }
+    while(INFINITE_LOOP == 1) { }
 }
 
 void thread2(void *arg) {
@@ -36,7 +36,7 @@ void thread2(void *arg) {
     uthread_create(thread3, NULL);
     printf("thread2 loop\n");
     // Stuck here until preempt interrupts loop
-    while(forever_loops == 1) { }
+    while(INFINITE_LOOP == 1) { }
 }
 
 void thread1(void *arg) {
@@ -45,7 +45,7 @@ void thread1(void *arg) {
     printf("thread1 entering loops\n");
     uthread_create(thread2, NULL);
     // Stuck here until preempt interrupts loop
-    while(forever_loops == 1) { }
+    while(INFINITE_LOOP == 1) { }
 }
 
 int main(int argc, char **argv) {
