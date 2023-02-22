@@ -11,7 +11,7 @@
 
 #include <uthread.h>
 
-int forever_loops = 1;
+volatile int forever_loops = 1;
 
 void thread4(void *arg) {
     (void)arg;
