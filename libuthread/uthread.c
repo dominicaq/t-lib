@@ -88,6 +88,9 @@ int uthread_create(uthread_func_t func, void *arg) {
 
 // Empty out a queue and free tcb mallocs
 void uthread_free_queue(queue_t target_queue) {
+    // Disable preempt, entering critical section
+    preempt_disable();
+
     while (queue_length(target_queue) > 0) {
         uthread_tcb* target_thread;
         queue_dequeue(target_queue, (void**)&target_thread);
@@ -96,6 +99,9 @@ void uthread_free_queue(queue_t target_queue) {
             free(target_thread);
         }
     }
+
+    // Reenable preempt, exiting critical section
+    preempt_enable();
 }
 
 int uthread_run(bool preempt, uthread_func_t func, void *arg) {
@@ -151,19 +157,20 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg) {
 
 // Block the current thread
 void uthread_block(void) {
-
+    // Disable preempt, entering critical section
     preempt_disable();
 
     // Block the current thread and yield to next
     queue_enqueue(blocked_queue, current_thread);
     uthread_yield();
 
+    // Reenable preempt, exiting critical section
     preempt_enable();
 }
 
 // Unblock a target thread
 void uthread_unblock(struct uthread_tcb *uthread) {
-
+    // Disable preempt, entering critical section
     preempt_disable();
 
     // Delete from blocked queue and add to ready queue if it existed
@@ -172,5 +179,6 @@ void uthread_unblock(struct uthread_tcb *uthread) {
         queue_enqueue(ready_queue, uthread);
     }
 
+    // Reenable preempt, exiting critical section
     preempt_enable();
 }
